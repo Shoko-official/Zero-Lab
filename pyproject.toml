@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zero-lab"
+version = "0.1.0"
+description = "Hardware-aware AlphaZero and MuZero research engine"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Shoko" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.0.0",
+  "pytest>=7.0.0",
+  "ruff>=0.1.0",
+]
+
+[project.scripts]
+zero-lab = "zero_lab.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+zero_lab = ["py.typed"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "SIM", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+strict = true
