@@ -2,30 +2,32 @@
 
 ## Title
 
-Establish Zero Lab planning foundation
+Add repository foundation and base game adapters
 
 ## Summary
 
-This merge request establishes the public planning foundation for Zero Lab, a hardware-aware AlphaZero and MuZero research engineering platform.
+This merge request establishes the executable foundation for Zero Lab and adds the first base game adapters, including Chess.
 
-It adds the project README, implementation plan, evaluation strategy, merge request roadmap, engineering standards, project journal, reference map, and Git ignore rules for generated Python artifacts.
+It adds package metadata, the `zero-lab` CLI, runtime configuration, logging, deterministic Python seeding, game-state contracts, Tic Tac Toe, Connect Four, Chess, tests, and repository hygiene.
 
 ## Motivation
 
-The project needs a serious foundation before algorithmic implementation starts. AlphaZero and MuZero systems are easy to prototype poorly and hard to evaluate honestly. This MR sets the project direction around correctness, reproducibility, hardware measurement, staged implementation, and reviewable engineering work.
+The project needs a serious foundation before algorithmic implementation starts. AlphaZero and MuZero systems are easy to prototype poorly and hard to evaluate honestly. This MR sets the project direction around correctness, reproducibility, staged implementation, and reviewable engineering work.
 
-The goal is to make the repository credible from the first visible step: clear scope, explicit gates, realistic timelines, and no unsupported performance claims.
+Chess is included as a base domain now, because future search, replay, and model-target code should be designed against realistic legal-action behavior from the start.
 
 ## Changes
 
-- Added a top-level README that defines the Zero Lab project, current status, documentation map, and operating principle.
-- Added a full implementation plan covering architecture, modules, phases, time estimates, hardware strategy, risks, and success criteria.
-- Added an evaluation plan covering correctness, search, learning, strength, hardware metrics, promotion policy, and reporting artifacts.
-- Added a merge request roadmap that breaks the project into reviewable implementation units.
-- Added engineering standards for code quality, documentation, experiments, reviews, and dependencies.
-- Added a project journal to track decisions and implementation history.
-- Added a reference map linking the project direction to AlphaZero, MuZero, Gumbel MuZero, Sampled MuZero, EfficientZero, KataGo, LightZero, PyTorch compile, TensorRT, and Ray RLlib.
-- Added `.gitignore` entries for Python caches, build outputs, virtual environments, coverage outputs, and local environment files.
+- Added package metadata and tool configuration.
+- Added the `zero-lab` CLI with `smoke-test`, `show-config`, and `list-games`.
+- Added runtime configuration, logging, and deterministic Python seeding.
+- Added game-state and game-rules protocols.
+- Added Tic Tac Toe and Connect Four adapters.
+- Added a Chess adapter backed by `python-chess` legal move generation.
+- Added a fixed Chess action space with `8 x 8 x 73` AlphaZero-style action IDs.
+- Added Chess legal action masks, move application, FEN serialization, perspective observations, outcomes, and underpromotion handling.
+- Added tests for CLI behavior, runtime config, seeding, toy-game invariants, and Chess invariants.
+- Updated README and MR draft.
 
 ## Scope Boundaries
 
@@ -36,10 +38,12 @@ Included:
 - MR roadmap.
 - Project standards.
 - Repository hygiene for generated files.
+- Base game adapters.
+- Chess as a first-class base environment.
 
 Not included:
 
-- Algorithm implementation.
+- MCTS implementation.
 - Training code.
 - Search code.
 - Runtime dependency changes.
@@ -51,11 +55,10 @@ Not included:
 Performed local checks:
 
 - `git diff --check` passed.
-- Whitespace scan passed on the new tracked documentation files.
-- ASCII scan passed on the new tracked documentation files.
-- Style scan passed for forbidden separators and generated-looking wording.
-
-No unit tests were run because this MR only adds documentation and ignore rules.
+- `python -m pytest` passed.
+- `python -m ruff check .` passed.
+- `python -m mypy src tests` passed.
+- `zero-lab list-games` passed.
 
 ## Review Focus
 
@@ -63,9 +66,8 @@ Please focus review on:
 
 - Whether the implementation phases are realistic and sequenced correctly.
 - Whether the evaluation gates are strong enough to prevent unsupported claims.
-- Whether the MR roadmap is granular enough for high-quality review.
-- Whether the documentation reads as a professional engineering foundation.
-- Whether any scope should be moved earlier or later before implementation starts.
+- Whether the environment contract is sufficient for MCTS and replay.
+- Whether the Chess action encoding is acceptable as the base contract before search implementation.
 
 ## Risks
 

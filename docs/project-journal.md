@@ -33,6 +33,33 @@ Open questions:
 - Whether the initial chess adapter should depend on an existing rules library or a small internal representation.
 - Which experiment tracker, if any, should be adopted after the first local run format is stable.
 
+## 2026-05-14
+
+Context:
+
+- Chess should be treated as a base environment now, not only as a later showcase domain.
+
+Decision:
+
+- Use `python-chess` for legal move generation and game-rule correctness.
+- Keep Chess behind the same game-state contract as toy games.
+- Use a fixed `8 x 8 x 73` AlphaZero-style action space for Chess.
+
+Implementation:
+
+- Added a Chess adapter with legal action masks, action decoding, FEN serialization, current-player perspective observations, outcomes, and underpromotion handling.
+- Added `zero-lab list-games` so built-in adapters are visible from the CLI.
+- Added tests for standard opening legal moves, move application, illegal actions, checkmate outcomes, perspective observations, serialization, and underpromotions.
+
+Verification:
+
+- `python -m pytest` passed.
+- `python -m ruff check .` passed.
+- `python -m mypy src tests` passed.
+- `python -m pip install -e .` passed.
+- `zero-lab smoke-test --run-dir "$env:TEMP\zero-lab-smoke" --seed 1` passed.
+- `zero-lab list-games` passed.
+
 Next entry template:
 
 ```text
