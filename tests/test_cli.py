@@ -37,3 +37,17 @@ def test_show_config_prints_effective_config(
     assert exit_code == 0
     assert payload["log_level"] == "DEBUG"
     assert payload["run_dir"] == str(tmp_path)
+
+
+def test_list_games_prints_builtin_adapters(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(["list-games"])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload == [
+        {"action_size": 9, "name": "tic_tac_toe"},
+        {"action_size": 7, "name": "connect_four"},
+        {"action_size": 4672, "name": "chess"},
+    ]
