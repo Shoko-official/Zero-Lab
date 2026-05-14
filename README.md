@@ -1,6 +1,10 @@
 # Zero Lab
 
-Zero Lab is a planned hardware-aware research and engineering platform for AlphaZero, MuZero, and modern tree-search reinforcement learning systems.
+<p align="center">
+  <img src="assets/logo/zero-lab.png" width="100%">
+</p>
+
+**Zero Lab** is a planned hardware-aware research and engineering platform for AlphaZero, MuZero, and modern tree-search reinforcement learning systems.
 
 ## Current Status
 
@@ -8,15 +12,13 @@ The repository is at the early implementation stage. It has project metadata, a 
 
 ## Project Shape
 
-- A game-agnostic AlphaZero engine for perfect-information domains.
-- Chess as a base environment, not only a later showcase.
-- A MuZero engine for learned-dynamics planning.
-- A shared Monte Carlo Tree Search core with batched neural inference.
-- A reproducible training and replay pipeline.
-- A benchmark suite that measures playing strength, sample efficiency, throughput, latency, memory use, and hardware utilization.
-- A documentation structure written for maintainers, reviewers, and technically strong visitors.
-
-
+*   **Universal Engine**: Game-agnostic architecture for perfect-information domains.
+*   **Chess First**: Native environment support from the start, not just a showcase.
+*   **MuZero Ready**: Learned-dynamics planning and latent search.
+*   **MCTS Core**: Shared search logic with batched neural inference.
+*   **Research Pipeline**: Reproducible training, replay, and evaluation loops.
+*   **Full Benchmarking**: Measures strength, sample efficiency, and hardware metrics.
+*   **Engineered Docs**: Documentation for maintainers and technical reviewers.
 
 ## Quick Start
 
