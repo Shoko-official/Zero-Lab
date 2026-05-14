@@ -11,6 +11,7 @@ from zero_lab import __version__
 from zero_lab.core.config import RuntimeConfig, load_runtime_config
 from zero_lab.core.logging import configure_logging
 from zero_lab.core.random import seed_python
+from zero_lab.games import ChessGame, ConnectFourGame, GameRules, TicTacToeGame
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -29,6 +30,9 @@ def build_parser() -> argparse.ArgumentParser:
     show_config = subcommands.add_parser("show-config", help="Print the effective runtime config.")
     add_runtime_options(show_config)
     show_config.set_defaults(handler=run_show_config)
+
+    list_games = subcommands.add_parser("list-games", help="List built-in game adapters.")
+    list_games.set_defaults(handler=run_list_games)
 
     return parser
 
@@ -70,6 +74,23 @@ def run_smoke_test(args: argparse.Namespace) -> int:
     }
 
     logger.info("Smoke test completed for %s", config.project_name)
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
+def run_list_games(_args: argparse.Namespace) -> int:
+    games: list[GameRules] = [
+        TicTacToeGame(),
+        ConnectFourGame(),
+        ChessGame(),
+    ]
+    payload = [
+        {
+            "action_size": game.action_size,
+            "name": game.name,
+        }
+        for game in games
+    ]
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
 
