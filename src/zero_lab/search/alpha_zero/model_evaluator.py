@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import cast
 
 from zero_lab.games import GameState
 from zero_lab.models import AlphaZeroBatch, AlphaZeroModel
@@ -84,5 +85,5 @@ def normalize_policy(policy: dict[int, float], legal_actions: Iterable[int]) -> 
 
 def as_evaluator(evaluator: AlphaZeroEvaluator | AlphaZeroModel) -> AlphaZeroEvaluator:
     if hasattr(evaluator, "evaluate"):
-        return evaluator
+        return cast(AlphaZeroEvaluator, evaluator)
     return ModelEvaluator(evaluator)

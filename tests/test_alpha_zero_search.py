@@ -21,7 +21,7 @@ class FixedLogitModel:
     def predict(self, batch: AlphaZeroBatch) -> AlphaZeroOutput:
         logits = tuple(tuple(float(action) for action in range(batch.shape.action_size)))
         return AlphaZeroOutput.from_sequences(
-            policy_logits=logits,
+            policy_logits=(logits,),
             values=(0.0,),
             batch=batch,
         )
