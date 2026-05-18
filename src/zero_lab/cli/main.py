@@ -13,7 +13,7 @@ from zero_lab.core.logging import configure_logging
 from zero_lab.core.random import seed_python
 from zero_lab.games import ChessGame, ConnectFourGame, GameRules, TicTacToeGame
 from zero_lab.games.toy import TicTacToeState
-from zero_lab.replay import append_episode
+from zero_lab.replay import append_episode, summarize_replay
 from zero_lab.search import AlphaZeroSearch, MCTSSearchConfig
 from zero_lab.search.alpha_zero import UniformEvaluator
 from zero_lab.self_play import AlphaZeroSelfPlay, SelfPlayConfig
@@ -54,6 +54,10 @@ def build_parser() -> argparse.ArgumentParser:
     self_play_demo.add_argument("--seed", type=int, default=0)
     self_play_demo.add_argument("--output", type=Path)
     self_play_demo.set_defaults(handler=run_self_play_demo)
+
+    replay_summary = subcommands.add_parser("replay-summary", help="Summarize a JSONL replay file.")
+    replay_summary.add_argument("input", type=Path)
+    replay_summary.set_defaults(handler=run_replay_summary)
 
     return parser
 
@@ -156,6 +160,11 @@ def run_self_play_demo(args: argparse.Namespace) -> int:
         "simulations": args.simulations,
     }
     print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
+def run_replay_summary(args: argparse.Namespace) -> int:
+    print(json.dumps(summarize_replay(args.input).to_dict(), indent=2, sort_keys=True))
     return 0
 
 

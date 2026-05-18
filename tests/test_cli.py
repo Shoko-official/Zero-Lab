@@ -88,3 +88,21 @@ def test_self_play_demo_writes_replay(tmp_path: Path, capsys: pytest.CaptureFixt
     assert payload["length"] > 0
     assert payload["output"] == str(output)
     assert output.exists()
+
+
+def test_replay_summary_prints_replay_counts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "self-play.jsonl"
+    main(["self-play-demo", "--simulations", "4", "--output", str(output)])
+    capsys.readouterr()
+
+    exit_code = main(["replay-summary", str(output)])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["episodes"] == 1
+    assert payload["games"] == {"tic_tac_toe": 1}
+    assert payload["steps"] > 0
