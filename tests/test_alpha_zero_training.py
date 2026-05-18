@@ -7,9 +7,11 @@ import pytest
 from zero_lab.games.toy import TicTacToeGame, TicTacToeState
 from zero_lab.replay import AlphaZeroSample, EpisodeRecord, EpisodeStep, append_episode
 from zero_lab.training.alpha_zero import (
+    AlphaZeroBatchSummary,
     AlphaZeroTrainingBatch,
     build_alpha_zero_training_batch,
     iter_alpha_zero_training_batches,
+    summarize_alpha_zero_training_batches,
 )
 
 
@@ -198,3 +200,90 @@ def test_build_alpha_zero_training_batch_rejects_mismatched_current_player() -> 
 
     with pytest.raises(ValueError, match="current_player"):
         build_alpha_zero_training_batch((sample,), games={"tic_tac_toe": TicTacToeGame()})
+
+
+def test_summarize_alpha_zero_training_batches_counts_full_and_partial_batches(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "episodes.jsonl"
+    state = TicTacToeState()
+    append_episode(
+        path,
+        EpisodeRecord(
+            game="tic_tac_toe",
+            outcome=1,
+            steps=(
+                EpisodeStep(
+                    action=0,
+                    current_player=1,
+                    policy=(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                    state=state.serialize(),
+                    value_target=1.0,
+                ),
+            ),
+            terminal_state=state.apply(0).serialize(),
+        ),
+    )
+
+    summary = summarize_alpha_zero_training_batches(
+        path,
+        games={"tic_tac_toe": TicTacToeGame()},
+        batch_size=2,
+    )
+
+    assert summary == AlphaZeroBatchSummary(
+        source_samples=1,
+        emitted_samples=1,
+        batches=1,
+        batch_size=2,
+        drop_remainder=False,
+        remainder_samples=0,
+        action_sizes=(9,),
+        observation_sizes=(9,),
+    )
+    assert summary.to_dict() == {
+        "action_sizes": [9],
+        "batch_size": 2,
+        "batches": 1,
+        "drop_remainder": False,
+        "emitted_samples": 1,
+        "observation_sizes": [9],
+        "remainder_samples": 0,
+        "source_samples": 1,
+    }
+
+
+def test_summarize_alpha_zero_training_batches_counts_dropped_remainder(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "episodes.jsonl"
+    state = TicTacToeState()
+    append_episode(
+        path,
+        EpisodeRecord(
+            game="tic_tac_toe",
+            outcome=1,
+            steps=(
+                EpisodeStep(
+                    action=0,
+                    current_player=1,
+                    policy=(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                    state=state.serialize(),
+                    value_target=1.0,
+                ),
+            ),
+            terminal_state=state.apply(0).serialize(),
+        ),
+    )
+
+    summary = summarize_alpha_zero_training_batches(
+        path,
+        games={"tic_tac_toe": TicTacToeGame()},
+        batch_size=2,
+        drop_remainder=True,
+    )
+
+    assert summary.source_samples == 1
+    assert summary.emitted_samples == 0
+    assert summary.batches == 0
+    assert summary.remainder_samples == 1
