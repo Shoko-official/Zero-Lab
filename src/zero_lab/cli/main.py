@@ -13,8 +13,10 @@ from zero_lab.core.logging import configure_logging
 from zero_lab.core.random import seed_python
 from zero_lab.games import ChessGame, ConnectFourGame, GameRules, TicTacToeGame
 from zero_lab.games.toy import TicTacToeState
+from zero_lab.replay import append_episode, summarize_replay
 from zero_lab.search import AlphaZeroSearch, MCTSSearchConfig
 from zero_lab.search.alpha_zero import UniformEvaluator
+from zero_lab.self_play import AlphaZeroSelfPlay, SelfPlayConfig
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -43,6 +45,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     search_demo.add_argument("--simulations", type=int, default=32)
     search_demo.set_defaults(handler=run_search_demo)
+
+    self_play_demo = subcommands.add_parser(
+        "self-play-demo",
+        help="Generate a deterministic Tic Tac Toe self-play episode.",
+    )
+    self_play_demo.add_argument("--simulations", type=int, default=16)
+    self_play_demo.add_argument("--seed", type=int, default=0)
+    self_play_demo.add_argument("--output", type=Path)
+    self_play_demo.set_defaults(handler=run_self_play_demo)
+
+    replay_summary = subcommands.add_parser("replay-summary", help="Summarize a JSONL replay file.")
+    replay_summary.add_argument("input", type=Path)
+    replay_summary.set_defaults(handler=run_replay_summary)
 
     return parser
 
@@ -122,6 +137,34 @@ def run_search_demo(args: argparse.Namespace) -> int:
         "visit_counts": {str(action): visits for action, visits in result.visit_counts.items()},
     }
     print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
+def run_self_play_demo(args: argparse.Namespace) -> int:
+    runner = AlphaZeroSelfPlay(
+        UniformEvaluator(),
+        MCTSSearchConfig(simulations=args.simulations),
+        SelfPlayConfig(max_moves=9, temperature=0.0),
+    )
+    episode = runner.play(TicTacToeGame(), seed=args.seed)
+    if args.output is not None:
+        append_episode(args.output, episode)
+
+    payload = {
+        "game": episode.game,
+        "length": episode.length,
+        "outcome": episode.outcome,
+        "output": None if args.output is None else str(args.output),
+        "schema_version": episode.schema_version,
+        "seed": args.seed,
+        "simulations": args.simulations,
+    }
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
+def run_replay_summary(args: argparse.Namespace) -> int:
+    print(json.dumps(summarize_replay(args.input).to_dict(), indent=2, sort_keys=True))
     return 0
 
 
