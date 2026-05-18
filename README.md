@@ -8,7 +8,7 @@
 
 ## Current Status
 
-The repository is at the early implementation stage. It has project metadata, a minimal CLI, runtime configuration, logging, deterministic Python seeding, toy-game adapters, and a Chess adapter backed by legal move generation.
+The repository is at the early implementation stage. It has project metadata, a minimal CLI, runtime configuration, logging, deterministic Python seeding, toy-game adapters, a Chess adapter backed by legal move generation, AlphaZero search, self-play replay records, and streaming dataset samples.
 
 ## Project Shape
 

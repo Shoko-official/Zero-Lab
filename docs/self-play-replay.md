@@ -13,6 +13,7 @@ The current implementation provides:
 - Versioned episode records.
 - JSONL append and read helpers.
 - Replay summary reporting.
+- Streaming AlphaZero sample iteration for training datasets.
 
 It does not yet include:
 
@@ -20,7 +21,7 @@ It does not yet include:
 - Replay sampling windows.
 - Compression.
 - Reanalyze.
-- Training dataset loaders.
+- Batch collation for framework-specific trainers.
 - Remote replay ingestion.
 
 ## Episode Records
@@ -39,6 +40,21 @@ Each replay episode stores:
 
 The record is intentionally explicit so downstream training code can validate data before it reaches a model.
 
+## Dataset Stream
+
+`iter_alpha_zero_samples` turns one or more replay files into a lazy stream of `AlphaZeroSample`
+records. Each sample contains:
+
+- Game name.
+- Serialized state.
+- Current player.
+- Selected action.
+- Visit-count policy target.
+- Value target.
+
+The stream is intentionally file-backed and lazy. Training jobs can consume large replay shards
+without materializing full episode corpora in memory.
+
 ## CLI
 
 Generate one deterministic Tic Tac Toe episode:
@@ -55,4 +71,5 @@ zero-lab replay-summary runs/self-play/tic-tac-toe.jsonl
 
 ## Next Step
 
-The next production step is a replay dataset layer that can stream episode steps into AlphaZero training batches without loading the full replay corpus into memory.
+The next production step is a trainer-facing batch collation layer with framework adapters for
+PyTorch tensors and pinned-memory transfer.
