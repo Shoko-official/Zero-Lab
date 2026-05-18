@@ -106,3 +106,51 @@ def test_replay_summary_prints_replay_counts(
     assert payload["episodes"] == 1
     assert payload["games"] == {"tic_tac_toe": 1}
     assert payload["steps"] > 0
+
+
+def test_replay_batch_summary_prints_training_batch_counts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "self-play.jsonl"
+    main(["self-play-demo", "--simulations", "4", "--seed", "3", "--output", str(output)])
+    capsys.readouterr()
+
+    exit_code = main(["replay-batch-summary", str(output), "--batch-size", "2"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["source_samples"] == 7
+    assert payload["emitted_samples"] == 7
+    assert payload["batches"] == 4
+    assert payload["batch_size"] == 2
+    assert payload["action_sizes"] == [9]
+    assert payload["observation_sizes"] == [9]
+
+
+def test_replay_batch_summary_can_drop_remainder(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "self-play.jsonl"
+    main(["self-play-demo", "--simulations", "4", "--seed", "3", "--output", str(output)])
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "replay-batch-summary",
+            str(output),
+            "--batch-size",
+            "99",
+            "--drop-remainder",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["source_samples"] == 7
+    assert payload["emitted_samples"] == 0
+    assert payload["batches"] == 0
+    assert payload["remainder_samples"] == 7
