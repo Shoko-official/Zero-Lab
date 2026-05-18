@@ -18,6 +18,7 @@ The repository is at the early implementation stage. It has project metadata, a 
 *   **MCTS Core**: Shared search logic with batched neural inference.
 *   **Research Pipeline**: Reproducible training, replay, and evaluation loops.
 *   **Full Benchmarking**: Measures strength, sample efficiency, and hardware metrics.
+*   **Native Path Later**: Memory-sensitive search, replay, batching, and inference plumbing can move to C++ once profiling proves the bottlenecks.
 *   **Engineered Docs**: Documentation for maintainers and technical reviewers.
 
 ## Quick Start

@@ -12,6 +12,9 @@ from zero_lab.core.config import RuntimeConfig, load_runtime_config
 from zero_lab.core.logging import configure_logging
 from zero_lab.core.random import seed_python
 from zero_lab.games import ChessGame, ConnectFourGame, GameRules, TicTacToeGame
+from zero_lab.games.toy import TicTacToeState
+from zero_lab.search import AlphaZeroSearch, MCTSSearchConfig
+from zero_lab.search.alpha_zero import UniformEvaluator
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +36,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     list_games = subcommands.add_parser("list-games", help="List built-in game adapters.")
     list_games.set_defaults(handler=run_list_games)
+
+    search_demo = subcommands.add_parser(
+        "search-demo",
+        help="Run a deterministic AlphaZero search smoke scenario.",
+    )
+    search_demo.add_argument("--simulations", type=int, default=32)
+    search_demo.set_defaults(handler=run_search_demo)
 
     return parser
 
@@ -91,6 +101,26 @@ def run_list_games(_args: argparse.Namespace) -> int:
         }
         for game in games
     ]
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
+def run_search_demo(args: argparse.Namespace) -> int:
+    state = TicTacToeState()
+    for action in (0, 3, 1, 4):
+        state = state.apply(action)
+
+    result = AlphaZeroSearch(
+        UniformEvaluator(),
+        MCTSSearchConfig(simulations=args.simulations),
+    ).run(state)
+    payload = {
+        "best_action": result.best_action,
+        "game": "tic_tac_toe",
+        "policy": {str(action): probability for action, probability in result.policy.items()},
+        "simulations": args.simulations,
+        "visit_counts": {str(action): visits for action, visits in result.visit_counts.items()},
+    }
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
 
