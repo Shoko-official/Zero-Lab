@@ -51,18 +51,20 @@ class AlphaZeroTrainingBatch:
             batch_size=shape.batch_size,
             action_size=shape.action_size,
         )
+        actions = _validate_selected_actions(
+            selected_actions,
+            batch_size=shape.batch_size,
+            action_size=shape.action_size,
+        )
         _validate_policy_targets_are_legal(policies, masks)
+        _validate_selected_actions_are_legal(actions, masks)
 
         return cls(
             observations=validate_observation_batch(observations, shape=shape),
             legal_action_masks=masks,
             target_policies=policies,
             target_values=_validate_target_values(target_values, batch_size=shape.batch_size),
-            selected_actions=_validate_selected_actions(
-                selected_actions,
-                batch_size=shape.batch_size,
-                action_size=shape.action_size,
-            ),
+            selected_actions=actions,
             current_players=_validate_current_players(
                 current_players,
                 batch_size=shape.batch_size,
@@ -144,6 +146,15 @@ def _validate_selected_actions(
         if action < 0 or action >= action_size:
             raise ValueError("selected_actions must be within the action space")
     return tuple(actions)
+
+
+def _validate_selected_actions_are_legal(
+    actions: Sequence[int],
+    legal_action_masks: Sequence[Sequence[bool]],
+) -> None:
+    for action, mask in zip(actions, legal_action_masks, strict=True):
+        if not mask[action]:
+            raise ValueError("selected_actions must be legal according to legal_action_masks")
 
 
 def _validate_current_players(
