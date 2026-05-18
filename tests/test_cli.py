@@ -51,3 +51,16 @@ def test_list_games_prints_builtin_adapters(capsys: pytest.CaptureFixture[str]) 
         {"action_size": 7, "name": "connect_four"},
         {"action_size": 4672, "name": "chess"},
     ]
+
+
+def test_search_demo_runs_alpha_zero_search(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(["search-demo", "--simulations", "16"])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["game"] == "tic_tac_toe"
+    assert payload["best_action"] == 2
+    assert payload["simulations"] == 16
+    assert sum(payload["visit_counts"].values()) == 16
