@@ -104,11 +104,7 @@ def run_smoke_test(args: argparse.Namespace) -> int:
 
 
 def run_list_games(_args: argparse.Namespace) -> int:
-    games: list[GameRules] = [
-        TicTacToeGame(),
-        ConnectFourGame(),
-        ChessGame(),
-    ]
+    games = list(builtin_games().values())
     payload = [
         {
             "action_size": game.action_size,
