@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Self, cast
+from typing import Self, cast
 
-from zero_lab.games import FIRST_PLAYER, SECOND_PLAYER
+from zero_lab.games.base import FIRST_PLAYER, SECOND_PLAYER
 
 REPLAY_SCHEMA_VERSION = 1
 
