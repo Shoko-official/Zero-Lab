@@ -27,6 +27,9 @@ The repository is at the early implementation stage. It has project metadata, a 
 python -m pip install -e .[dev]
 zero-lab smoke-test
 zero-lab list-games
+zero-lab search-demo --simulations 16
+zero-lab self-play-demo --simulations 4 --output runs/self-play/tic-tac-toe.jsonl
+zero-lab replay-summary runs/self-play/tic-tac-toe.jsonl
 python -m pytest
 ```
 
