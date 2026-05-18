@@ -49,6 +49,19 @@ def test_alpha_zero_training_batch_rejects_invalid_policy_target() -> None:
         )
 
 
+def test_alpha_zero_training_batch_rejects_illegal_policy_mass() -> None:
+    with pytest.raises(ValueError, match="illegal actions"):
+        AlphaZeroTrainingBatch.from_sequences(
+            observations=((1, 0, -1),),
+            legal_action_masks=((True, False),),
+            target_policies=((0.5, 0.5),),
+            target_values=(1,),
+            selected_actions=(0,),
+            current_players=(1,),
+            action_size=2,
+        )
+
+
 def test_alpha_zero_training_batch_rejects_out_of_range_action() -> None:
     with pytest.raises(ValueError, match="selected_actions must be within"):
         AlphaZeroTrainingBatch.from_sequences(

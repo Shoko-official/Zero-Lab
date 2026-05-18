@@ -41,18 +41,22 @@ class AlphaZeroTrainingBatch:
             action_size=action_size,
             observation_size=len(observations[0]),
         )
+        masks = validate_policy_mask(
+            legal_action_masks,
+            batch_size=shape.batch_size,
+            action_size=shape.action_size,
+        )
+        policies = _validate_target_policies(
+            target_policies,
+            batch_size=shape.batch_size,
+            action_size=shape.action_size,
+        )
+        _validate_policy_targets_are_legal(policies, masks)
+
         return cls(
             observations=validate_observation_batch(observations, shape=shape),
-            legal_action_masks=validate_policy_mask(
-                legal_action_masks,
-                batch_size=shape.batch_size,
-                action_size=shape.action_size,
-            ),
-            target_policies=_validate_target_policies(
-                target_policies,
-                batch_size=shape.batch_size,
-                action_size=shape.action_size,
-            ),
+            legal_action_masks=masks,
+            target_policies=policies,
             target_values=_validate_target_values(target_values, batch_size=shape.batch_size),
             selected_actions=_validate_selected_actions(
                 selected_actions,
@@ -97,6 +101,16 @@ def _validate_target_policies(
         normalized.append(row)
 
     return tuple(normalized)
+
+
+def _validate_policy_targets_are_legal(
+    policies: Sequence[Sequence[float]],
+    legal_action_masks: Sequence[Sequence[bool]],
+) -> None:
+    for policy, mask in zip(policies, legal_action_masks, strict=True):
+        for value, is_legal in zip(policy, mask, strict=True):
+            if value > 0.0 and not is_legal:
+                raise ValueError("target_policies must not assign mass to illegal actions")
 
 
 def _validate_target_values(
