@@ -17,7 +17,6 @@ from zero_lab.replay import append_episode, summarize_replay
 from zero_lab.search import AlphaZeroSearch, MCTSSearchConfig
 from zero_lab.search.alpha_zero import UniformEvaluator
 from zero_lab.self_play import AlphaZeroSelfPlay, SelfPlayConfig
-from zero_lab.training import summarize_alpha_zero_training_batches
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -59,15 +58,6 @@ def build_parser() -> argparse.ArgumentParser:
     replay_summary = subcommands.add_parser("replay-summary", help="Summarize a JSONL replay file.")
     replay_summary.add_argument("input", type=Path)
     replay_summary.set_defaults(handler=run_replay_summary)
-
-    replay_batch_summary = subcommands.add_parser(
-        "replay-batch-summary",
-        help="Summarize AlphaZero training batches from a JSONL replay file.",
-    )
-    replay_batch_summary.add_argument("input", type=Path)
-    replay_batch_summary.add_argument("--batch-size", type=int, default=32)
-    replay_batch_summary.add_argument("--drop-remainder", action="store_true")
-    replay_batch_summary.set_defaults(handler=run_replay_batch_summary)
 
     return parser
 
@@ -172,26 +162,6 @@ def run_self_play_demo(args: argparse.Namespace) -> int:
 def run_replay_summary(args: argparse.Namespace) -> int:
     print(json.dumps(summarize_replay(args.input).to_dict(), indent=2, sort_keys=True))
     return 0
-
-
-def run_replay_batch_summary(args: argparse.Namespace) -> int:
-    summary = summarize_alpha_zero_training_batches(
-        args.input,
-        games=builtin_games(),
-        batch_size=args.batch_size,
-        drop_remainder=args.drop_remainder,
-    )
-    print(json.dumps(summary.to_dict(), indent=2, sort_keys=True))
-    return 0
-
-
-def builtin_games() -> dict[str, GameRules]:
-    games: list[GameRules] = [
-        TicTacToeGame(),
-        ConnectFourGame(),
-        ChessGame(),
-    ]
-    return {game.name: game for game in games}
 
 
 def main(argv: Sequence[str] | None = None) -> int:

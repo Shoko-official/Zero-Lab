@@ -14,7 +14,6 @@ The current implementation provides:
 - JSONL append and read helpers.
 - Replay summary reporting.
 - Streaming AlphaZero sample iteration for training datasets.
-- Framework-light AlphaZero batch collation and batch summary reporting.
 
 It does not yet include:
 
@@ -70,13 +69,7 @@ Summarize a replay file:
 zero-lab replay-summary runs/self-play/tic-tac-toe.jsonl
 ```
 
-Summarize AlphaZero training batches from replay:
-
-```bash
-zero-lab replay-batch-summary runs/self-play/tic-tac-toe.jsonl --batch-size 32
-```
-
 ## Next Step
 
-The next production step is a framework-specific tensor adapter for PyTorch batches and
-pinned-memory transfer.
+The next production step is a trainer-facing batch collation layer with framework adapters for
+PyTorch tensors and pinned-memory transfer.
