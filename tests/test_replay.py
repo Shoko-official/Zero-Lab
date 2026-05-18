@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from zero_lab.replay import (
+    AlphaZeroSample,
     EpisodeRecord,
     EpisodeStep,
     append_episode,
+    iter_alpha_zero_samples,
     read_episodes,
     summarize_replay,
 )
@@ -37,7 +41,7 @@ def test_episode_record_round_trips_through_dict() -> None:
     assert restored == record
 
 
-def test_jsonl_storage_appends_and_reads_episodes(tmp_path) -> None:
+def test_jsonl_storage_appends_and_reads_episodes(tmp_path: Path) -> None:
     path = tmp_path / "episodes.jsonl"
     record = EpisodeRecord(
         game="toy",
@@ -60,7 +64,7 @@ def test_jsonl_storage_appends_and_reads_episodes(tmp_path) -> None:
     assert list(read_episodes(path)) == [record, record]
 
 
-def test_replay_summary_counts_games_outcomes_and_steps(tmp_path) -> None:
+def test_replay_summary_counts_games_outcomes_and_steps(tmp_path: Path) -> None:
     path = tmp_path / "episodes.jsonl"
     record = EpisodeRecord(
         game="toy",
@@ -86,3 +90,57 @@ def test_replay_summary_counts_games_outcomes_and_steps(tmp_path) -> None:
         "outcomes": {"1": 1},
         "steps": 1,
     }
+
+
+def test_iter_alpha_zero_samples_streams_replay_steps(tmp_path: Path) -> None:
+    first_path = tmp_path / "first.jsonl"
+    second_path = tmp_path / "second.jsonl"
+    first_record = EpisodeRecord(
+        game="toy",
+        outcome=1,
+        steps=(
+            EpisodeStep(
+                action=0,
+                current_player=1,
+                policy=(0.25, 0.75),
+                state="state-a",
+                value_target=1.0,
+            ),
+        ),
+        terminal_state="terminal-a",
+    )
+    second_record = EpisodeRecord(
+        game="toy",
+        outcome=-1,
+        steps=(
+            EpisodeStep(
+                action=1,
+                current_player=-1,
+                policy=(0.6, 0.4),
+                state="state-b",
+                value_target=1.0,
+            ),
+        ),
+        terminal_state="terminal-b",
+    )
+    append_episode(first_path, first_record)
+    append_episode(second_path, second_record)
+
+    assert list(iter_alpha_zero_samples((first_path, second_path))) == [
+        AlphaZeroSample(
+            action=0,
+            current_player=1,
+            game="toy",
+            policy=(0.25, 0.75),
+            state="state-a",
+            value_target=1.0,
+        ),
+        AlphaZeroSample(
+            action=1,
+            current_player=-1,
+            game="toy",
+            policy=(0.6, 0.4),
+            state="state-b",
+            value_target=1.0,
+        ),
+    ]

@@ -100,7 +100,7 @@ class EpisodeRecord:
 
         return cls(
             game=_read_string(values, "game"),
-            outcome=cast(int | None, outcome),
+            outcome=outcome,
             schema_version=_read_int(values, "schema_version"),
             steps=tuple(EpisodeStep.from_dict(_read_mapping(step)) for step in steps),
             terminal_state=_read_string(values, "terminal_state"),
