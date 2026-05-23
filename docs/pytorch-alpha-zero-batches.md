@@ -17,7 +17,6 @@ The current implementation provides:
 It does not yet include:
 
 - Model modules.
-- Loss functions.
 - Optimizer setup.
 - Mixed precision.
 - Pinned-memory transfer.
@@ -59,4 +58,6 @@ for batch in iter_torch_alpha_zero_training_batches(
 
 ## Next Step
 
-The next production step is AlphaZero policy and value losses over these tensors.
+The next production step is an optimizer-backed training step over these tensors.
+
+See `docs/alpha-zero-losses.md` for the policy and value loss boundary.
