@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 import torch
 
+from zero_lab.games.toy import TicTacToeGame, TicTacToeState
+from zero_lab.replay import EpisodeRecord, EpisodeStep, append_episode
 from zero_lab.training.alpha_zero import (
     TorchAlphaZeroTrainingBatch,
     as_torch_alpha_zero_training_batch,
+    iter_torch_alpha_zero_training_batches,
 )
 from zero_lab.training.alpha_zero.batches import AlphaZeroTrainingBatch
 
@@ -98,3 +103,38 @@ def test_torch_alpha_zero_training_batch_rejects_mismatched_float_dtype() -> Non
             current_players=source.current_players,
             shape=source.shape,
         )
+
+
+def test_iter_torch_alpha_zero_training_batches_streams_replay(tmp_path: Path) -> None:
+    path = tmp_path / "episodes.jsonl"
+    state = TicTacToeState()
+    append_episode(
+        path,
+        EpisodeRecord(
+            game="tic_tac_toe",
+            outcome=1,
+            steps=(
+                EpisodeStep(
+                    action=0,
+                    current_player=1,
+                    policy=(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                    state=state.serialize(),
+                    value_target=1.0,
+                ),
+            ),
+            terminal_state=state.apply(0).serialize(),
+        ),
+    )
+
+    batches = list(
+        iter_torch_alpha_zero_training_batches(
+            path,
+            games={"tic_tac_toe": TicTacToeGame()},
+            batch_size=1,
+            dtype=torch.float64,
+        )
+    )
+
+    assert len(batches) == 1
+    assert batches[0].observations.shape == torch.Size((1, 9))
+    assert batches[0].target_policies.dtype == torch.float64

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 
+from zero_lab.games import GameRules
 from zero_lab.models.common import BatchShape
 from zero_lab.training.alpha_zero.batches import AlphaZeroTrainingBatch
+from zero_lab.training.alpha_zero.replay import iter_alpha_zero_training_batches
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +86,24 @@ def as_torch_alpha_zero_training_batch(
         current_players=current_players,
         shape=batch.shape,
     )
+
+
+def iter_torch_alpha_zero_training_batches(
+    paths: Path | Sequence[Path],
+    *,
+    games: Mapping[str, GameRules],
+    batch_size: int,
+    drop_remainder: bool = False,
+    device: torch.device | str | None = None,
+    dtype: torch.dtype = torch.float32,
+) -> Iterator[TorchAlphaZeroTrainingBatch]:
+    for batch in iter_alpha_zero_training_batches(
+        paths,
+        games=games,
+        batch_size=batch_size,
+        drop_remainder=drop_remainder,
+    ):
+        yield as_torch_alpha_zero_training_batch(batch, device=device, dtype=dtype)
 
 
 def _require_shape(tensor: torch.Tensor, expected_shape: tuple[int, ...]) -> None:

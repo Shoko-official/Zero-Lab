@@ -12,6 +12,7 @@ from zero_lab.training.alpha_zero.summary import (
 from zero_lab.training.alpha_zero.torch_batches import (
     TorchAlphaZeroTrainingBatch,
     as_torch_alpha_zero_training_batch,
+    iter_torch_alpha_zero_training_batches,
 )
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     "as_torch_alpha_zero_training_batch",
     "build_alpha_zero_training_batch",
     "iter_alpha_zero_training_batches",
+    "iter_torch_alpha_zero_training_batches",
     "summarize_alpha_zero_training_batches",
 ]
