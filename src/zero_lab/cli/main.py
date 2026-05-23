@@ -164,6 +164,15 @@ def run_replay_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def builtin_games() -> dict[str, GameRules]:
+    games: list[GameRules] = [
+        TicTacToeGame(),
+        ConnectFourGame(),
+        ChessGame(),
+    ]
+    return {game.name: game for game in games}
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
