@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 import torch
 
-from zero_lab.training.alpha_zero import AlphaZeroLossConfig, alpha_zero_policy_loss
+from zero_lab.training.alpha_zero import (
+    AlphaZeroLossConfig,
+    alpha_zero_policy_loss,
+    alpha_zero_value_loss,
+)
 
 
 def test_alpha_zero_loss_config_defaults_to_balanced_mse() -> None:
@@ -41,3 +45,31 @@ def test_alpha_zero_policy_loss_rejects_wrong_shape() -> None:
 
     with pytest.raises(ValueError, match="shape"):
         alpha_zero_policy_loss(logits, targets)
+
+
+def test_alpha_zero_value_loss_matches_mse() -> None:
+    predicted = torch.tensor([1.0, -0.5], dtype=torch.float32)
+    target = torch.tensor([0.0, -1.0], dtype=torch.float32)
+
+    loss = alpha_zero_value_loss(predicted, target)
+    expected = torch.nn.functional.mse_loss(predicted, target, reduction="mean")
+
+    assert torch.allclose(loss, expected)
+
+
+def test_alpha_zero_value_loss_matches_huber() -> None:
+    predicted = torch.tensor([2.0, -0.5], dtype=torch.float32)
+    target = torch.tensor([0.0, -1.0], dtype=torch.float32)
+
+    loss = alpha_zero_value_loss(predicted, target, loss_kind="huber", huber_delta=1.0)
+    expected = torch.nn.functional.huber_loss(predicted, target, reduction="mean", delta=1.0)
+
+    assert torch.allclose(loss, expected)
+
+
+def test_alpha_zero_value_loss_rejects_wrong_shape() -> None:
+    predicted = torch.tensor([[1.0]], dtype=torch.float32)
+    target = torch.tensor([1.0], dtype=torch.float32)
+
+    with pytest.raises(ValueError, match="rank-1"):
+        alpha_zero_value_loss(predicted, target)
