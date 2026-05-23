@@ -49,6 +49,7 @@ def alpha_zero_policy_loss(
         raise ValueError("target_policies must be on the same device as policy_logits")
     _require_finite(policy_logits, "policy_logits")
     _require_finite(target_policies, "target_policies")
+    _require_probability_targets(target_policies)
     return F.cross_entropy(policy_logits, target_policies, reduction="mean")
 
 
@@ -113,6 +114,15 @@ def _require_float_tensor(tensor: torch.Tensor, name: str) -> None:
 def _require_finite(tensor: torch.Tensor, name: str) -> None:
     if not torch.isfinite(tensor).all().item():
         raise ValueError(f"{name} must contain only finite values")
+
+
+def _require_probability_targets(targets: torch.Tensor) -> None:
+    if (targets < 0.0).any().item():
+        raise ValueError("target_policies must contain only non-negative values")
+    row_sums = targets.sum(dim=1)
+    expected = torch.ones_like(row_sums)
+    if not torch.allclose(row_sums, expected, atol=1e-6, rtol=0.0):
+        raise ValueError("target_policies must sum to 1")
 
 
 def _require_non_negative(value: float, name: str) -> None:

@@ -64,6 +64,22 @@ def test_alpha_zero_policy_loss_rejects_wrong_shape() -> None:
         alpha_zero_policy_loss(logits, targets)
 
 
+def test_alpha_zero_policy_loss_rejects_invalid_probability_target() -> None:
+    logits = torch.tensor([[2.0, 0.0]], dtype=torch.float32)
+    targets = torch.tensor([[0.2, 0.2]], dtype=torch.float32)
+
+    with pytest.raises(ValueError, match="sum to 1"):
+        alpha_zero_policy_loss(logits, targets)
+
+
+def test_alpha_zero_policy_loss_rejects_negative_probability_target() -> None:
+    logits = torch.tensor([[2.0, 0.0]], dtype=torch.float32)
+    targets = torch.tensor([[1.1, -0.1]], dtype=torch.float32)
+
+    with pytest.raises(ValueError, match="non-negative"):
+        alpha_zero_policy_loss(logits, targets)
+
+
 def test_alpha_zero_value_loss_matches_mse() -> None:
     predicted = torch.tensor([1.0, -0.5], dtype=torch.float32)
     target = torch.tensor([0.0, -1.0], dtype=torch.float32)
