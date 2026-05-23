@@ -27,9 +27,16 @@ class TorchAlphaZeroTrainingBatch:
         _require_shape(self.target_values, (self.shape.batch_size,))
         _require_shape(self.selected_actions, (self.shape.batch_size,))
         _require_shape(self.current_players, (self.shape.batch_size,))
+        _require_dtype(self.target_policies, self.observations.dtype, "target_policies")
+        _require_dtype(self.target_values, self.observations.dtype, "target_values")
         _require_dtype(self.legal_action_masks, torch.bool, "legal_action_masks")
         _require_dtype(self.selected_actions, torch.long, "selected_actions")
         _require_dtype(self.current_players, torch.long, "current_players")
+        _require_device(self.target_policies, self.observations.device, "target_policies")
+        _require_device(self.target_values, self.observations.device, "target_values")
+        _require_device(self.legal_action_masks, self.observations.device, "legal_action_masks")
+        _require_device(self.selected_actions, self.observations.device, "selected_actions")
+        _require_device(self.current_players, self.observations.device, "current_players")
 
     @property
     def device(self) -> torch.device:
@@ -85,3 +92,8 @@ def _require_shape(tensor: torch.Tensor, expected_shape: tuple[int, ...]) -> Non
 def _require_dtype(tensor: torch.Tensor, expected_dtype: torch.dtype, name: str) -> None:
     if tensor.dtype != expected_dtype:
         raise TypeError(f"{name} must use dtype {expected_dtype}")
+
+
+def _require_device(tensor: torch.Tensor, expected_device: torch.device, name: str) -> None:
+    if tensor.device != expected_device:
+        raise ValueError(f"{name} must be on device {expected_device}")

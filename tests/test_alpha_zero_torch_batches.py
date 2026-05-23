@@ -83,3 +83,18 @@ def test_torch_alpha_zero_training_batch_rejects_wrong_mask_dtype() -> None:
             current_players=source.current_players,
             shape=source.shape,
         )
+
+
+def test_torch_alpha_zero_training_batch_rejects_mismatched_float_dtype() -> None:
+    source = as_torch_alpha_zero_training_batch(make_training_batch())
+
+    with pytest.raises(TypeError, match="target_policies"):
+        TorchAlphaZeroTrainingBatch(
+            observations=source.observations,
+            legal_action_masks=source.legal_action_masks,
+            target_policies=source.target_policies.to(torch.float64),
+            target_values=source.target_values,
+            selected_actions=source.selected_actions,
+            current_players=source.current_players,
+            shape=source.shape,
+        )
