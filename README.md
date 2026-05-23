@@ -8,7 +8,7 @@
 
 ## Current Status
 
-The repository is at the early implementation stage. It has project metadata, a minimal CLI, runtime configuration, logging, deterministic Python seeding, toy-game adapters, a Chess adapter backed by legal move generation, AlphaZero search, self-play replay records, and streaming dataset samples.
+The repository is at the early implementation stage. It has project metadata, a minimal CLI, runtime configuration, logging, deterministic Python seeding, toy-game adapters, a Chess adapter backed by legal move generation, AlphaZero search, self-play replay records, streaming dataset samples, and PyTorch-ready training batches.
 
 ## Project Shape
 
@@ -30,6 +30,7 @@ zero-lab list-games
 zero-lab search-demo --simulations 16
 zero-lab self-play-demo --simulations 4 --output runs/self-play/tic-tac-toe.jsonl
 zero-lab replay-summary runs/self-play/tic-tac-toe.jsonl
+zero-lab replay-batch-summary runs/self-play/tic-tac-toe.jsonl --batch-size 32
 python -m pytest
 ```
 
