@@ -8,6 +8,8 @@ from typing import Literal
 import torch
 import torch.nn.functional as F
 
+from zero_lab.training.alpha_zero.torch_batches import TorchAlphaZeroTrainingBatch
+
 ValueLossKind = Literal["mse", "huber"]
 
 
@@ -78,6 +80,29 @@ def alpha_zero_value_loss(
             delta=huber_delta,
         )
     raise ValueError("loss_kind must be 'mse' or 'huber'")
+
+
+def alpha_zero_loss(
+    policy_logits: torch.Tensor,
+    predicted_values: torch.Tensor,
+    batch: TorchAlphaZeroTrainingBatch,
+    *,
+    config: AlphaZeroLossConfig | None = None,
+) -> AlphaZeroLoss:
+    resolved_config = AlphaZeroLossConfig() if config is None else config
+    policy = alpha_zero_policy_loss(policy_logits, batch.target_policies)
+    value = alpha_zero_value_loss(
+        predicted_values,
+        batch.target_values,
+        loss_kind=resolved_config.value_loss,
+        huber_delta=resolved_config.huber_delta,
+    )
+    total = resolved_config.policy_weight * policy + resolved_config.value_weight * value
+    return AlphaZeroLoss(
+        policy_loss=policy,
+        value_loss=value,
+        total_loss=total,
+    )
 
 
 def _require_float_tensor(tensor: torch.Tensor, name: str) -> None:

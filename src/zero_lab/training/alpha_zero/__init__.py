@@ -4,6 +4,7 @@ from zero_lab.training.alpha_zero.batches import AlphaZeroTrainingBatch
 from zero_lab.training.alpha_zero.losses import (
     AlphaZeroLoss,
     AlphaZeroLossConfig,
+    alpha_zero_loss,
     alpha_zero_policy_loss,
     alpha_zero_value_loss,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "AlphaZeroLossConfig",
     "AlphaZeroTrainingBatch",
     "TorchAlphaZeroTrainingBatch",
+    "alpha_zero_loss",
     "alpha_zero_policy_loss",
     "alpha_zero_value_loss",
     "as_torch_alpha_zero_training_batch",
