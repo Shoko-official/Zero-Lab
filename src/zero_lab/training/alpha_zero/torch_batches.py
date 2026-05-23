@@ -50,6 +50,24 @@ class TorchAlphaZeroTrainingBatch:
     def dtype(self) -> torch.dtype:
         return self.observations.dtype
 
+    def to(
+        self,
+        *,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> TorchAlphaZeroTrainingBatch:
+        target_device = self.device if device is None else torch.device(device)
+        target_dtype = self.dtype if dtype is None else dtype
+        return TorchAlphaZeroTrainingBatch(
+            observations=self.observations.to(device=target_device, dtype=target_dtype),
+            legal_action_masks=self.legal_action_masks.to(device=target_device),
+            target_policies=self.target_policies.to(device=target_device, dtype=target_dtype),
+            target_values=self.target_values.to(device=target_device, dtype=target_dtype),
+            selected_actions=self.selected_actions.to(device=target_device),
+            current_players=self.current_players.to(device=target_device),
+            shape=self.shape,
+        )
+
 
 def as_torch_alpha_zero_training_batch(
     batch: AlphaZeroTrainingBatch,

@@ -60,6 +60,21 @@ def test_as_torch_alpha_zero_training_batch_honors_dtype_and_device() -> None:
     assert batch.legal_action_masks.dtype == torch.bool
 
 
+def test_torch_alpha_zero_training_batch_can_move_dtype_and_device() -> None:
+    batch = as_torch_alpha_zero_training_batch(make_training_batch())
+
+    moved = batch.to(device="cpu", dtype=torch.float64)
+
+    assert moved.observations.device == torch.device("cpu")
+    assert moved.observations.dtype == torch.float64
+    assert moved.target_policies.dtype == torch.float64
+    assert moved.target_values.dtype == torch.float64
+    assert moved.legal_action_masks.dtype == torch.bool
+    assert moved.selected_actions.dtype == torch.long
+    assert moved.current_players.dtype == torch.long
+    assert moved.shape == batch.shape
+
+
 def test_torch_alpha_zero_training_batch_rejects_wrong_shape() -> None:
     source = as_torch_alpha_zero_training_batch(make_training_batch())
 
