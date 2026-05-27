@@ -15,9 +15,7 @@ The current implementation provides:
 
 It does not yet include:
 
-- Optimizer setup.
 - Learning-rate schedules.
-- Gradient clipping.
 - Mixed precision.
 - Checkpointing.
 - A full training loop.
@@ -58,5 +56,6 @@ The default configuration gives both components equal weight and uses MSE for va
 
 ## Next Step
 
-The next production step is a training step that runs model inference, computes these losses, runs
-backpropagation, and steps an optimizer.
+The loss functions are now consumed by `run_alpha_zero_training_step`.
+
+The next production step is a replay-backed training loop with checkpoint save and resume support.

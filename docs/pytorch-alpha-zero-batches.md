@@ -17,7 +17,6 @@ The current implementation provides:
 It does not yet include:
 
 - Model modules.
-- Optimizer setup.
 - Mixed precision.
 - Pinned-memory transfer.
 - Checkpointing.
@@ -58,6 +57,6 @@ for batch in iter_torch_alpha_zero_training_batches(
 
 ## Next Step
 
-The next production step is an optimizer-backed training step over these tensors.
+The batch tensors are now consumed by `run_alpha_zero_training_step`.
 
-See `docs/alpha-zero-losses.md` for the policy and value loss boundary.
+See `docs/alpha-zero-training-step.md` for the optimizer-backed step boundary.
