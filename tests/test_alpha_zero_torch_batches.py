@@ -1,0 +1,155 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+import torch
+
+from zero_lab.games.toy import TicTacToeGame, TicTacToeState
+from zero_lab.replay import EpisodeRecord, EpisodeStep, append_episode
+from zero_lab.training.alpha_zero import (
+    TorchAlphaZeroTrainingBatch,
+    as_torch_alpha_zero_training_batch,
+    iter_torch_alpha_zero_training_batches,
+)
+from zero_lab.training.alpha_zero.batches import AlphaZeroTrainingBatch
+
+
+def make_training_batch() -> AlphaZeroTrainingBatch:
+    return AlphaZeroTrainingBatch.from_sequences(
+        observations=((1, 0, -1), (0, 1, 0)),
+        legal_action_masks=((True, False), (True, True)),
+        target_policies=((1.0, 0.0), (0.25, 0.75)),
+        target_values=(1, -1),
+        selected_actions=(0, 1),
+        current_players=(1, -1),
+        action_size=2,
+    )
+
+
+def test_as_torch_alpha_zero_training_batch_converts_cpu_tensors() -> None:
+    batch = as_torch_alpha_zero_training_batch(make_training_batch())
+
+    assert batch.observations.shape == torch.Size((2, 3))
+    assert batch.legal_action_masks.shape == torch.Size((2, 2))
+    assert batch.target_policies.shape == torch.Size((2, 2))
+    assert batch.target_values.shape == torch.Size((2,))
+    assert batch.selected_actions.shape == torch.Size((2,))
+    assert batch.current_players.shape == torch.Size((2,))
+    assert batch.observations.dtype == torch.float32
+    assert batch.target_policies.dtype == torch.float32
+    assert batch.target_values.dtype == torch.float32
+    assert batch.legal_action_masks.dtype == torch.bool
+    assert batch.selected_actions.dtype == torch.long
+    assert batch.current_players.dtype == torch.long
+    assert batch.device == torch.device("cpu")
+    assert batch.dtype == torch.float32
+
+
+def test_as_torch_alpha_zero_training_batch_honors_dtype_and_device() -> None:
+    batch = as_torch_alpha_zero_training_batch(
+        make_training_batch(),
+        device="cpu",
+        dtype=torch.float64,
+    )
+
+    assert batch.observations.device == torch.device("cpu")
+    assert batch.observations.dtype == torch.float64
+    assert batch.target_policies.dtype == torch.float64
+    assert batch.target_values.dtype == torch.float64
+    assert batch.legal_action_masks.dtype == torch.bool
+
+
+def test_torch_alpha_zero_training_batch_can_move_dtype_and_device() -> None:
+    batch = as_torch_alpha_zero_training_batch(make_training_batch())
+
+    moved = batch.to(device="cpu", dtype=torch.float64)
+
+    assert moved.observations.device == torch.device("cpu")
+    assert moved.observations.dtype == torch.float64
+    assert moved.target_policies.dtype == torch.float64
+    assert moved.target_values.dtype == torch.float64
+    assert moved.legal_action_masks.dtype == torch.bool
+    assert moved.selected_actions.dtype == torch.long
+    assert moved.current_players.dtype == torch.long
+    assert moved.shape == batch.shape
+
+
+def test_torch_alpha_zero_training_batch_rejects_wrong_shape() -> None:
+    source = as_torch_alpha_zero_training_batch(make_training_batch())
+
+    with pytest.raises(ValueError, match="tensor shape"):
+        TorchAlphaZeroTrainingBatch(
+            observations=source.observations[:1],
+            legal_action_masks=source.legal_action_masks,
+            target_policies=source.target_policies,
+            target_values=source.target_values,
+            selected_actions=source.selected_actions,
+            current_players=source.current_players,
+            shape=source.shape,
+        )
+
+
+def test_torch_alpha_zero_training_batch_rejects_wrong_mask_dtype() -> None:
+    source = as_torch_alpha_zero_training_batch(make_training_batch())
+
+    with pytest.raises(TypeError, match="legal_action_masks"):
+        TorchAlphaZeroTrainingBatch(
+            observations=source.observations,
+            legal_action_masks=source.legal_action_masks.to(torch.float32),
+            target_policies=source.target_policies,
+            target_values=source.target_values,
+            selected_actions=source.selected_actions,
+            current_players=source.current_players,
+            shape=source.shape,
+        )
+
+
+def test_torch_alpha_zero_training_batch_rejects_mismatched_float_dtype() -> None:
+    source = as_torch_alpha_zero_training_batch(make_training_batch())
+
+    with pytest.raises(TypeError, match="target_policies"):
+        TorchAlphaZeroTrainingBatch(
+            observations=source.observations,
+            legal_action_masks=source.legal_action_masks,
+            target_policies=source.target_policies.to(torch.float64),
+            target_values=source.target_values,
+            selected_actions=source.selected_actions,
+            current_players=source.current_players,
+            shape=source.shape,
+        )
+
+
+def test_iter_torch_alpha_zero_training_batches_streams_replay(tmp_path: Path) -> None:
+    path = tmp_path / "episodes.jsonl"
+    state = TicTacToeState()
+    append_episode(
+        path,
+        EpisodeRecord(
+            game="tic_tac_toe",
+            outcome=1,
+            steps=(
+                EpisodeStep(
+                    action=0,
+                    current_player=1,
+                    policy=(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                    state=state.serialize(),
+                    value_target=1.0,
+                ),
+            ),
+            terminal_state=state.apply(0).serialize(),
+        ),
+    )
+
+    batches = list(
+        iter_torch_alpha_zero_training_batches(
+            path,
+            games={"tic_tac_toe": TicTacToeGame()},
+            batch_size=1,
+            dtype=torch.float64,
+        )
+    )
+
+    assert len(batches) == 1
+    assert batches[0].observations.shape == torch.Size((1, 9))
+    assert batches[0].target_policies.dtype == torch.float64

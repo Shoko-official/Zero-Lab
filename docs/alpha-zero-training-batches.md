@@ -17,7 +17,6 @@ The current implementation provides:
 
 It does not yet include:
 
-- PyTorch tensor collation.
 - Pinned-memory transfer.
 - Optimizer setup.
 - Loss functions.
@@ -70,5 +69,6 @@ zero-lab replay-batch-summary runs/self-play/tic-tac-toe.jsonl --batch-size 32 -
 
 ## Next Step
 
-The next production step is a PyTorch-facing tensor collation layer, followed by policy and value
-losses over these framework-light batches.
+The next production step is policy and value losses over PyTorch tensors.
+
+See `docs/pytorch-alpha-zero-batches.md` for the PyTorch tensor boundary.
