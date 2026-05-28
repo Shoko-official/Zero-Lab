@@ -18,8 +18,6 @@ It does not yet include:
 
 - Learning-rate schedules.
 - Mixed precision.
-- Checkpointing.
-- Replay training loops.
 - Validation loops.
 
 ## Model Output Contract
@@ -50,5 +48,7 @@ Each call:
 
 ## Next Step
 
-The next production step is a replay-backed training loop that repeatedly consumes PyTorch batches,
-records metrics, and saves resumable checkpoints.
+The training step is now consumed by `train_alpha_zero_from_replay`.
+
+The next production step is an evaluation harness that can compare checkpoints against baselines
+with reproducible reports.

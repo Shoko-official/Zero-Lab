@@ -58,4 +58,4 @@ The default configuration gives both components equal weight and uses MSE for va
 
 The loss functions are now consumed by `run_alpha_zero_training_step`.
 
-The next production step is a replay-backed training loop with checkpoint save and resume support.
+The training step is now consumed by `train_alpha_zero_from_replay`.

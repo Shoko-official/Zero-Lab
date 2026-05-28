@@ -59,4 +59,4 @@ for batch in iter_torch_alpha_zero_training_batches(
 
 The batch tensors are now consumed by `run_alpha_zero_training_step`.
 
-See `docs/alpha-zero-training-step.md` for the optimizer-backed step boundary.
+See `docs/alpha-zero-training-loop.md` for the replay-backed training loop.
