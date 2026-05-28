@@ -59,6 +59,21 @@ def build_parser() -> argparse.ArgumentParser:
     replay_summary.add_argument("input", type=Path)
     replay_summary.set_defaults(handler=run_replay_summary)
 
+    train_alpha_zero = subcommands.add_parser(
+        "train-alpha-zero",
+        help="Train a small AlphaZero policy-value model from replay.",
+    )
+    add_runtime_options(train_alpha_zero)
+    train_alpha_zero.add_argument("input", type=Path)
+    train_alpha_zero.add_argument("--game", choices=tuple(builtin_games()), default="tic_tac_toe")
+    train_alpha_zero.add_argument("--batch-size", type=int, default=32)
+    train_alpha_zero.add_argument("--steps", type=int, default=1)
+    train_alpha_zero.add_argument("--learning-rate", type=_positive_float, default=0.01)
+    train_alpha_zero.add_argument("--checkpoint-dir", type=Path)
+    train_alpha_zero.add_argument("--resume-from", type=Path)
+    train_alpha_zero.add_argument("--drop-remainder", action="store_true")
+    train_alpha_zero.set_defaults(handler=run_train_alpha_zero)
+
     return parser
 
 
@@ -164,6 +179,60 @@ def run_replay_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_train_alpha_zero(args: argparse.Namespace) -> int:
+    import torch
+
+    from zero_lab.training.alpha_zero import AlphaZeroTrainerConfig, train_alpha_zero_from_replay
+
+    config = resolve_runtime_config(args)
+    configure_logging(config)
+    seed_python(config.seed)
+
+    game = builtin_games()[args.game]
+    initial_state = game.reset(seed=config.seed)
+
+    class LinearAlphaZeroModel(torch.nn.Module):
+        def __init__(self, *, observation_size: int, action_size: int) -> None:
+            super().__init__()
+            self.policy = torch.nn.Linear(observation_size, action_size)
+            self.value = torch.nn.Linear(observation_size, 1)
+
+        def forward(self, observations: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.policy(observations), self.value(observations).squeeze(dim=1)
+
+    model = LinearAlphaZeroModel(
+        observation_size=len(initial_state.canonical_observation()),
+        action_size=game.action_size,
+    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
+    checkpoint_dir = args.checkpoint_dir or (config.run_dir / "checkpoints")
+    checkpoint_path = checkpoint_dir / f"{args.game}-alpha-zero.pt"
+
+    result = train_alpha_zero_from_replay(
+        args.input,
+        games={args.game: game},
+        model=model,
+        optimizer=optimizer,
+        config=AlphaZeroTrainerConfig(
+            batch_size=args.batch_size,
+            max_steps=args.steps,
+            drop_remainder=args.drop_remainder,
+            checkpoint_path=checkpoint_path,
+            resume_from=args.resume_from,
+        ),
+    )
+    payload = {
+        **result.to_dict(),
+        "batch_size": args.batch_size,
+        "drop_remainder": args.drop_remainder,
+        "game": args.game,
+        "replay": str(args.input),
+        "resume_from": None if args.resume_from is None else str(args.resume_from),
+    }
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
 def builtin_games() -> dict[str, GameRules]:
     games: list[GameRules] = [
         TicTacToeGame(),
@@ -171,6 +240,16 @@ def builtin_games() -> dict[str, GameRules]:
         ChessGame(),
     ]
     return {game.name: game for game in games}
+
+
+def _positive_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("value must be a number") from error
+    if parsed <= 0.0:
+        raise argparse.ArgumentTypeError("value must be positive")
+    return parsed
 
 
 def main(argv: Sequence[str] | None = None) -> int:

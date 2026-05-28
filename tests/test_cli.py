@@ -106,3 +106,40 @@ def test_replay_summary_prints_replay_counts(
     assert payload["episodes"] == 1
     assert payload["games"] == {"tic_tac_toe": 1}
     assert payload["steps"] > 0
+
+
+def test_train_alpha_zero_trains_replay_and_writes_checkpoint(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    replay_path = tmp_path / "self-play.jsonl"
+    run_dir = tmp_path / "run"
+    main(["self-play-demo", "--simulations", "4", "--seed", "3", "--output", str(replay_path)])
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "train-alpha-zero",
+            str(replay_path),
+            "--run-dir",
+            str(run_dir),
+            "--seed",
+            "3",
+            "--steps",
+            "1",
+            "--batch-size",
+            "1",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["game"] == "tic_tac_toe"
+    assert payload["steps"] == 1
+    assert payload["samples"] == 1
+    assert payload["checkpoint_path"] == str(
+        run_dir / "checkpoints" / "tic_tac_toe-alpha-zero.pt"
+    )
+    assert Path(payload["checkpoint_path"]).exists()
