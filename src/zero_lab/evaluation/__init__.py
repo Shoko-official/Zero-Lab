@@ -11,6 +11,7 @@ from zero_lab.evaluation.checkpoints import (
     CheckpointComparison,
     compare_alpha_zero_checkpoints,
 )
+from zero_lab.evaluation.elo import EloConfidenceInterval, estimate_elo_confidence_interval
 from zero_lab.evaluation.matches import MatchConfig, MatchResult, play_match, run_head_to_head
 from zero_lab.evaluation.reports import (
     DEFAULT_EVALUATION_LIMITATIONS,
@@ -24,6 +25,7 @@ __all__ = [
     "AlphaZeroCheckpoint",
     "CheckpointAgent",
     "CheckpointComparison",
+    "EloConfidenceInterval",
     "EvaluationAgent",
     "EvaluationReport",
     "MatchConfig",
@@ -32,6 +34,7 @@ __all__ = [
     "RandomLegalMoveAgent",
     "UniformSearchAgent",
     "compare_alpha_zero_checkpoints",
+    "estimate_elo_confidence_interval",
     "play_match",
     "run_head_to_head",
     "summarize_match_results",
