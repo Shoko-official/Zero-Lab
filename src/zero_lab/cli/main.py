@@ -11,6 +11,13 @@ from zero_lab import __version__
 from zero_lab.core.config import RuntimeConfig, load_runtime_config
 from zero_lab.core.logging import configure_logging
 from zero_lab.core.random import seed_python
+from zero_lab.evaluation import (
+    MatchConfig,
+    RandomLegalMoveAgent,
+    UniformSearchAgent,
+    run_head_to_head,
+    summarize_match_results,
+)
 from zero_lab.games import ChessGame, ConnectFourGame, GameRules, TicTacToeGame
 from zero_lab.games.toy import TicTacToeState
 from zero_lab.replay import append_episode, summarize_replay
@@ -58,6 +65,23 @@ def build_parser() -> argparse.ArgumentParser:
     replay_summary = subcommands.add_parser("replay-summary", help="Summarize a JSONL replay file.")
     replay_summary.add_argument("input", type=Path)
     replay_summary.set_defaults(handler=run_replay_summary)
+
+    evaluate = subcommands.add_parser(
+        "evaluate",
+        help="Run fixed-seed baseline evaluation matches.",
+    )
+    evaluate.add_argument(
+        "--games",
+        nargs="+",
+        choices=tuple(evaluation_games()),
+        default=["tic_tac_toe", "connect_four"],
+    )
+    evaluate.add_argument("--seed", type=int, default=0)
+    evaluate.add_argument("--games-per-side", type=int, default=1)
+    evaluate.add_argument("--max-moves", type=int, default=512)
+    evaluate.add_argument("--simulations", type=int, default=32)
+    evaluate.add_argument("--output", type=Path)
+    evaluate.set_defaults(handler=run_evaluate)
 
     return parser
 
@@ -164,11 +188,59 @@ def run_replay_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_evaluate(args: argparse.Namespace) -> int:
+    config = MatchConfig(
+        seed=args.seed,
+        games_per_side=args.games_per_side,
+        max_moves=args.max_moves,
+    )
+    first_agent = RandomLegalMoveAgent()
+    second_agent = UniformSearchAgent(simulations=args.simulations)
+    games_by_name = evaluation_games()
+    games = tuple(games_by_name[name] for name in args.games)
+    report = summarize_match_results(
+        run_head_to_head(
+            games=games,
+            first_agent=first_agent,
+            second_agent=second_agent,
+            config=config,
+        ),
+        config=config,
+    )
+    payload = report.to_dict()
+    payload["config"] = {
+        **config.to_dict(),
+        "agents": [
+            {"name": first_agent.name, "role": "agent_one"},
+            {
+                "name": second_agent.name,
+                "role": "agent_two",
+                "simulations": second_agent.simulations,
+                "temperature": second_agent.temperature,
+            },
+        ],
+    }
+    serialized = json.dumps(payload, indent=2, sort_keys=True)
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(serialized + "\n", encoding="utf-8")
+    print(serialized)
+    return 0
+
+
 def builtin_games() -> dict[str, GameRules]:
     games: list[GameRules] = [
         TicTacToeGame(),
         ConnectFourGame(),
         ChessGame(),
+    ]
+    return {game.name: game for game in games}
+
+
+def evaluation_games() -> dict[str, GameRules]:
+    games: list[GameRules] = [
+        TicTacToeGame(),
+        ConnectFourGame(),
     ]
     return {game.name: game for game in games}
 
