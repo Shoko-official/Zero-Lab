@@ -16,7 +16,7 @@ The current implementation provides:
 
 It does not yet include:
 
-- Elo ratings.
+- Standalone Elo ladder ratings.
 - SPRT.
 - Confidence intervals.
 - Parallel match execution.
@@ -135,7 +135,8 @@ This keeps short evaluation runs inspectable and repeatable while the harness is
 
 ## Next Work
 
-Elo and SPRT should stay in a later MR after this runner has had enough usage to validate:
+Checkpoint promotion reports can build on this runner to add candidate-specific confidence intervals.
+SPRT should stay in a later MR after this runner has had enough usage to validate:
 
 - report schema stability,
 - match determinism,
