@@ -8,7 +8,7 @@
 
 ## Current Status
 
-The repository is at the early implementation stage. It has project metadata, a minimal CLI, runtime configuration, logging, deterministic Python seeding, toy-game adapters, a Chess adapter backed by legal move generation, AlphaZero search, self-play replay records, streaming dataset samples, PyTorch-ready training batches, AlphaZero losses, and a fixed-seed baseline evaluation harness.
+The repository is at the early implementation stage. It has project metadata, a minimal CLI, runtime configuration, logging, deterministic Python seeding, toy-game adapters, a Chess adapter backed by legal move generation, AlphaZero search, self-play replay records, streaming dataset samples, PyTorch-ready training batches, AlphaZero losses, a fixed-seed baseline evaluation harness, and AlphaZero checkpoint promotion reports.
 
 ## Project Shape
 
