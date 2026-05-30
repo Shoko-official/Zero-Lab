@@ -25,6 +25,13 @@ class MatchConfig:
         if isinstance(self.max_moves, bool) or self.max_moves <= 0:
             raise ValueError("max_moves must be a positive integer")
 
+    def to_dict(self) -> dict[str, int]:
+        return {
+            "games_per_side": self.games_per_side,
+            "max_moves": self.max_moves,
+            "seed": self.seed,
+        }
+
 
 @dataclass(frozen=True, slots=True)
 class MatchResult:
@@ -36,6 +43,18 @@ class MatchResult:
     terminal: bool
     outcome_for_first: int | None
     winner: str | None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "first_agent": self.first_agent,
+            "game": self.game,
+            "moves": self.moves,
+            "outcome_for_first": self.outcome_for_first,
+            "second_agent": self.second_agent,
+            "seed": self.seed,
+            "terminal": self.terminal,
+            "winner": self.winner,
+        }
 
 
 def run_head_to_head(
