@@ -106,3 +106,52 @@ def test_replay_summary_prints_replay_counts(
     assert payload["episodes"] == 1
     assert payload["games"] == {"tic_tac_toe": 1}
     assert payload["steps"] > 0
+
+
+def test_evaluate_prints_baseline_report(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(
+        [
+            "evaluate",
+            "--games",
+            "tic_tac_toe",
+            "--seed",
+            "7",
+            "--simulations",
+            "4",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["config"]["seed"] == 7
+    assert payload["config"]["agents"][1]["name"] == "uniform_search"
+    assert payload["config"]["agents"][1]["simulations"] == 4
+    assert payload["games"] == ["tic_tac_toe"]
+    assert set(payload["scores"]) == {"random_legal", "uniform_search"}
+    assert len(payload["matches"]) == 2
+
+
+def test_evaluate_writes_report_file(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "reports" / "evaluation.json"
+
+    exit_code = main(
+        [
+            "evaluate",
+            "--games",
+            "tic_tac_toe",
+            "--simulations",
+            "4",
+            "--output",
+            str(output),
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert json.loads(output.read_text(encoding="utf-8")) == json.loads(captured.out)
