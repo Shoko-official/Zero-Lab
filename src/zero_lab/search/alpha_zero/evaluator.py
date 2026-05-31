@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -27,4 +27,9 @@ class Evaluation:
 
 class AlphaZeroEvaluator(Protocol):
     def evaluate(self, state: GameState) -> Evaluation:
+        pass
+
+
+class AlphaZeroBatchEvaluator(AlphaZeroEvaluator, Protocol):
+    def evaluate_batch(self, states: Sequence[GameState]) -> tuple[Evaluation, ...]:
         pass
