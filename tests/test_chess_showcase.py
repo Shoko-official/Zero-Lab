@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import json
+
 import chess
 
 from zero_lab.evaluation import (
+    ChessBaselineConfig,
     ChessMatchConfig,
     RandomLegalMoveAgent,
+    run_chess_baseline_evaluation,
     run_chess_match,
     run_chess_matches,
 )
@@ -59,3 +63,33 @@ def test_chess_matches_alternate_colors_and_seeds() -> None:
         ("agent_a", "agent_b"),
         ("agent_b", "agent_a"),
     ]
+
+
+def test_chess_baseline_evaluation_builds_public_report() -> None:
+    report = run_chess_baseline_evaluation(
+        ChessBaselineConfig(seed=41, games_per_side=1, max_plies=4, simulations=1)
+    )
+    payload = report.to_dict()
+
+    assert payload["game"] == "chess"
+    assert payload["seeds"] == [41, 42]
+    scores = payload["scores"]
+    games = payload["games"]
+
+    assert isinstance(scores, dict)
+    assert isinstance(games, list)
+    assert set(scores) == {"random_legal", "uniform_search"}
+    assert len(games) == 2
+    assert "No chess training" in str(payload["limitations"])
+
+
+def test_chess_baseline_report_json_is_stable() -> None:
+    report = run_chess_baseline_evaluation(
+        ChessBaselineConfig(seed=43, games_per_side=1, max_plies=2, simulations=1)
+    )
+
+    payload = json.loads(report.to_json())
+
+    assert payload["config"]["seed"] == 43
+    assert payload["config"]["agents"][1]["simulations"] == 1
+    assert payload["games"][0]["moves"][0]["uci"]
