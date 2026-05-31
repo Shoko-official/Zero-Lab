@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from zero_lab.games import GameState
 from zero_lab.search.alpha_zero.config import MCTSSearchConfig
 from zero_lab.search.alpha_zero.evaluator import AlphaZeroEvaluator
-from zero_lab.search.alpha_zero.model_evaluator import as_evaluator, normalize_policy
+from zero_lab.search.alpha_zero.model_evaluator import (
+    as_evaluator,
+    evaluate_batch,
+    normalize_policy,
+)
 from zero_lab.search.alpha_zero.tree import EdgeStats, SearchNode
 
 
@@ -27,6 +32,12 @@ class SearchResult:
 
 
 @dataclass(frozen=True, slots=True)
+class _PendingLeaf:
+    node: SearchNode
+    path: list[EdgeStats]
+
+
+@dataclass(frozen=True, slots=True)
 class AlphaZeroSearch:
     evaluator: AlphaZeroEvaluator
     config: MCTSSearchConfig = MCTSSearchConfig()
@@ -40,14 +51,34 @@ class AlphaZeroSearch:
         object.__setattr__(self, "config", MCTSSearchConfig() if config is None else config)
 
     def run(self, root_state: GameState) -> SearchResult:
-        root = SearchNode(root_state)
-        if root_state.is_terminal:
-            return SearchResult(root=root, visit_counts={}, action_values={}, policy={})
+        return self.run_batch((root_state,))[0]
 
-        self._expand(root)
+    def run_batch(self, root_states: Sequence[GameState]) -> tuple[SearchResult, ...]:
+        roots = tuple(SearchNode(state) for state in root_states)
+        if not roots:
+            return ()
+
+        active_roots = tuple(root for root in roots if not root.state.is_terminal)
+        self._expand_batch(active_roots)
         for _ in range(self.config.simulations):
-            self._run_simulation(root)
+            pending_leaves = tuple(self._select_leaf(root) for root in active_roots)
+            terminal_leaves: list[_PendingLeaf] = []
+            expandable_leaves: list[_PendingLeaf] = []
+            for pending in pending_leaves:
+                if pending.node.state.is_terminal:
+                    terminal_leaves.append(pending)
+                else:
+                    expandable_leaves.append(pending)
 
+            values = self._expand_batch(tuple(pending.node for pending in expandable_leaves))
+            for pending in terminal_leaves:
+                self._backpropagate(pending.path, _terminal_value(pending.node.state))
+            for pending, value in zip(expandable_leaves, values, strict=True):
+                self._backpropagate(pending.path, value)
+
+        return tuple(self._build_result(root) for root in roots)
+
+    def _build_result(self, root: SearchNode) -> SearchResult:
         visit_counts = {
             action: edge.visit_count
             for action, edge in sorted(root.edges.items())
@@ -72,6 +103,15 @@ class AlphaZeroSearch:
         )
 
     def _run_simulation(self, root: SearchNode) -> None:
+        pending = self._select_leaf(root)
+        value = (
+            _terminal_value(pending.node.state)
+            if pending.node.state.is_terminal
+            else self._expand(pending.node)
+        )
+        self._backpropagate(pending.path, value)
+
+    def _select_leaf(self, root: SearchNode) -> _PendingLeaf:
         node = root
         path: list[EdgeStats] = []
 
@@ -82,20 +122,24 @@ class AlphaZeroSearch:
             path.append(edge)
             node = edge.child
 
-        if node.state.is_terminal:
-            outcome = node.state.outcome_for(node.state.current_player)
-            value = 0.0 if outcome is None else float(outcome)
-        else:
-            value = self._expand(node)
-
-        self._backpropagate(path, value)
+        return _PendingLeaf(node=node, path=path)
 
     def _expand(self, node: SearchNode) -> float:
-        evaluation = self.evaluator.evaluate(node.state)
-        legal_actions = node.state.legal_actions()
-        priors = normalize_policy(dict(evaluation.policy), legal_actions)
-        node.expand(priors)
-        return evaluation.value
+        return self._expand_batch((node,))[0]
+
+    def _expand_batch(self, nodes: Sequence[SearchNode]) -> tuple[float, ...]:
+        nodes_tuple = tuple(nodes)
+        if not nodes_tuple:
+            return ()
+
+        evaluations = evaluate_batch(self.evaluator, tuple(node.state for node in nodes_tuple))
+        values: list[float] = []
+        for node, evaluation in zip(nodes_tuple, evaluations, strict=True):
+            legal_actions = node.state.legal_actions()
+            priors = normalize_policy(dict(evaluation.policy), legal_actions)
+            node.expand(priors)
+            values.append(evaluation.value)
+        return tuple(values)
 
     def _select_child(self, node: SearchNode) -> tuple[int, EdgeStats]:
         parent_visits = node.visit_count
@@ -118,3 +162,8 @@ class AlphaZeroSearch:
             value = -value
             edge.value_sum += value
             edge.visit_count += 1
+
+
+def _terminal_value(state: GameState) -> float:
+    outcome = state.outcome_for(state.current_player)
+    return 0.0 if outcome is None else float(outcome)

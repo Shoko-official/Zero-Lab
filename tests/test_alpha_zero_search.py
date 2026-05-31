@@ -147,3 +147,38 @@ def test_search_finds_immediate_tic_tac_toe_win() -> None:
     assert result.best_action == 2
     assert result.action_values[2] == pytest.approx(1.0)
     assert sum(result.visit_counts.values()) == 32
+
+
+def test_batched_search_matches_unbatched_decisions() -> None:
+    first_state = TicTacToeState()
+    for action in (0, 3, 1, 4):
+        first_state = first_state.apply(action)
+    second_state = TicTacToeState().apply(4).apply(0)
+    config = MCTSSearchConfig(simulations=16)
+
+    batch_results = AlphaZeroSearch(UniformEvaluator(), config).run_batch(
+        (first_state, second_state)
+    )
+    single_results = tuple(
+        AlphaZeroSearch(UniformEvaluator(), config).run(state)
+        for state in (first_state, second_state)
+    )
+
+    assert [result.best_action for result in batch_results] == [
+        result.best_action for result in single_results
+    ]
+    assert [result.visit_counts for result in batch_results] == [
+        result.visit_counts for result in single_results
+    ]
+
+
+def test_batched_search_uses_batch_adapter_for_roots_and_leaves() -> None:
+    model = RecordingBatchModel()
+    states = (TicTacToeState(), TicTacToeState().apply(0))
+
+    AlphaZeroSearch(
+        BatchedModelEvaluator(model),
+        MCTSSearchConfig(simulations=1),
+    ).run_batch(states)
+
+    assert model.batch_sizes == [2, 2]
