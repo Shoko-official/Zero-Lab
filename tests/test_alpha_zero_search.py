@@ -8,9 +8,11 @@ from zero_lab.games.toy.tic_tac_toe import TicTacToeState
 from zero_lab.models import AlphaZeroBatch, AlphaZeroModel, AlphaZeroOutput
 from zero_lab.search.alpha_zero import (
     AlphaZeroSearch,
+    BatchedModelEvaluator,
     MCTSSearchConfig,
     ModelEvaluator,
     UniformEvaluator,
+    evaluate_batch,
     select_action_by_temperature,
     visit_count_policy,
 )
@@ -23,6 +25,24 @@ class FixedLogitModel:
         return AlphaZeroOutput.from_sequences(
             policy_logits=(logits,),
             values=(0.0,),
+            batch=batch,
+        )
+
+
+class RecordingBatchModel:
+    def __init__(self) -> None:
+        self.batch_sizes: list[int] = []
+
+    def predict(self, batch: AlphaZeroBatch) -> AlphaZeroOutput:
+        self.batch_sizes.append(batch.shape.batch_size)
+        logits = tuple(
+            tuple(float(action) for action in range(batch.shape.action_size))
+            for _ in range(batch.shape.batch_size)
+        )
+        values = tuple(0.25 for _ in range(batch.shape.batch_size))
+        return AlphaZeroOutput.from_sequences(
+            policy_logits=logits,
+            values=values,
             batch=batch,
         )
 
@@ -55,6 +75,31 @@ def test_model_evaluator_uses_legal_action_mask() -> None:
     assert 0 not in evaluation.policy
     assert set(evaluation.policy) == set(state.legal_actions())
     assert sum(evaluation.policy.values()) == pytest.approx(1.0)
+
+
+def test_model_evaluator_batches_non_terminal_states() -> None:
+    model = RecordingBatchModel()
+    states = (TicTacToeState(), TicTacToeState().apply(0))
+
+    evaluations = evaluate_batch(BatchedModelEvaluator(model), states)
+
+    assert model.batch_sizes == [2]
+    assert len(evaluations) == 2
+    assert set(evaluations[1].policy) == set(states[1].legal_actions())
+    assert evaluations[0].value == pytest.approx(0.25)
+
+
+def test_model_evaluator_skips_terminal_states_in_batch() -> None:
+    model = RecordingBatchModel()
+    state = TicTacToeState()
+    for action in (0, 3, 1, 4, 2):
+        state = state.apply(action)
+
+    evaluations = evaluate_batch(ModelEvaluator(model), (state,))
+
+    assert model.batch_sizes == []
+    assert evaluations[0].policy == {}
+    assert evaluations[0].value == pytest.approx(-1.0)
 
 
 def test_visit_count_policy_normalizes_counts() -> None:
