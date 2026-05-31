@@ -6,6 +6,10 @@ from zero_lab.search.alpha_zero.evaluator import (
     AlphaZeroEvaluator,
     Evaluation,
 )
+from zero_lab.search.alpha_zero.latency import (
+    BatchedInferenceLatency,
+    measure_batched_inference_latency,
+)
 from zero_lab.search.alpha_zero.model_evaluator import (
     BatchedModelEvaluator,
     ModelEvaluator,
@@ -20,12 +24,14 @@ __all__ = [
     "AlphaZeroBatchEvaluator",
     "AlphaZeroSearch",
     "BatchedModelEvaluator",
+    "BatchedInferenceLatency",
     "Evaluation",
     "MCTSSearchConfig",
     "ModelEvaluator",
     "SearchResult",
     "UniformEvaluator",
     "evaluate_batch",
+    "measure_batched_inference_latency",
     "select_action_by_temperature",
     "visit_count_policy",
 ]
