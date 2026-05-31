@@ -13,6 +13,7 @@ The current implementation provides:
 - Built-in evaluation coverage for Tic Tac Toe and Connect Four.
 - JSON-ready reports with wins, losses, draws, seeds, games, config, match records, and limitations.
 - A CLI command for reproducible local smoke evaluations.
+- A separate Chess showcase flow for legal UCI game records.
 
 It does not yet include:
 
@@ -143,3 +144,5 @@ SPRT should stay in a later MR after this runner has had enough usage to validat
 - baseline behavior,
 - runtime cost on larger game counts,
 - failure behavior for unfinished games.
+
+For Chess-specific public reports, see [Chess Showcase Evaluation](chess-showcase-evaluation.md).
