@@ -23,6 +23,8 @@ GAME_NAME = "chess"
 ACTION_PLANES = 73
 ACTION_SIZE = 64 * ACTION_PLANES
 QUEEN_MOVE_PLANES = 56
+KNIGHT_MOVE_PLANES = 8
+UNDERPROMOTION_START_PLANE = QUEEN_MOVE_PLANES + KNIGHT_MOVE_PLANES
 
 _QUEEN_DIRECTIONS = (
     (0, 1),
@@ -35,6 +37,17 @@ _QUEEN_DIRECTIONS = (
     (-1, 1),
 )
 _DIRECTION_TO_INDEX = {direction: index for index, direction in enumerate(_QUEEN_DIRECTIONS)}
+_KNIGHT_DELTAS = (
+    (1, 2),
+    (2, 1),
+    (2, -1),
+    (1, -2),
+    (-1, -2),
+    (-2, -1),
+    (-2, 1),
+    (-1, 2),
+)
+_KNIGHT_DELTA_TO_INDEX = {delta: index for index, delta in enumerate(_KNIGHT_DELTAS)}
 _UNDERPROMOTION_PIECES = {
     chess.KNIGHT: 0,
     chess.BISHOP: 1,
@@ -174,6 +187,8 @@ def move_from_action(board: chess.Board, action: int) -> chess.Move:
 
     if plane < QUEEN_MOVE_PLANES:
         move = _queen_move_from_plane(board, from_square, plane)
+    elif plane < UNDERPROMOTION_START_PLANE:
+        move = _knight_move_from_plane(from_square, plane)
     else:
         move = _underpromotion_move_from_plane(board, from_square, plane)
 
@@ -186,6 +201,8 @@ def move_from_action(board: chess.Board, action: int) -> chess.Move:
 def _plane_from_move(board: chess.Board, move: chess.Move) -> int:
     if move.promotion in _UNDERPROMOTION_PIECES:
         return _underpromotion_plane(board, move)
+    if _is_knight_move(move):
+        return _knight_plane(move)
     return _queen_plane(move)
 
 
@@ -213,6 +230,26 @@ def _queen_plane(move: chess.Move) -> int:
     return direction_index * 7 + distance - 1
 
 
+def _is_knight_move(move: chess.Move) -> bool:
+    from_file = chess.square_file(move.from_square)
+    from_rank = chess.square_rank(move.from_square)
+    to_file = chess.square_file(move.to_square)
+    to_rank = chess.square_rank(move.to_square)
+    return (abs(to_file - from_file), abs(to_rank - from_rank)) in ((1, 2), (2, 1))
+
+
+def _knight_plane(move: chess.Move) -> int:
+    from_file = chess.square_file(move.from_square)
+    from_rank = chess.square_rank(move.from_square)
+    to_file = chess.square_file(move.to_square)
+    to_rank = chess.square_rank(move.to_square)
+    delta = (to_file - from_file, to_rank - from_rank)
+    try:
+        return QUEEN_MOVE_PLANES + _KNIGHT_DELTA_TO_INDEX[delta]
+    except KeyError as error:
+        raise IllegalMoveError("move cannot be encoded as a knight move") from error
+
+
 def _underpromotion_plane(board: chess.Board, move: chess.Move) -> int:
     piece = board.piece_at(move.from_square)
     if piece is None or piece.piece_type != chess.PAWN:
@@ -233,7 +270,7 @@ def _underpromotion_plane(board: chess.Board, move: chess.Move) -> int:
     except (KeyError, ValueError) as error:
         raise IllegalMoveError("move cannot be encoded as an underpromotion") from error
 
-    return QUEEN_MOVE_PLANES + direction_index * 3 + piece_index
+    return UNDERPROMOTION_START_PLANE + direction_index * 3 + piece_index
 
 
 def _queen_move_from_plane(board: chess.Board, from_square: int, plane: int) -> chess.Move:
@@ -254,6 +291,20 @@ def _queen_move_from_plane(board: chess.Board, from_square: int, plane: int) -> 
     return chess.Move(from_square, to_square, promotion=promotion)
 
 
+def _knight_move_from_plane(from_square: int, plane: int) -> chess.Move:
+    knight_plane = plane - QUEEN_MOVE_PLANES
+    file_delta, rank_delta = _KNIGHT_DELTAS[knight_plane]
+    from_file = chess.square_file(from_square)
+    from_rank = chess.square_rank(from_square)
+    to_file = from_file + file_delta
+    to_rank = from_rank + rank_delta
+
+    if not _contains_square(to_file, to_rank):
+        raise IllegalMoveError("knight action points outside the board")
+
+    return chess.Move(from_square, chess.square(to_file, to_rank))
+
+
 def _underpromotion_move_from_plane(
     board: chess.Board,
     from_square: int,
@@ -263,7 +314,7 @@ def _underpromotion_move_from_plane(
     if piece is None or piece.piece_type != chess.PAWN:
         raise IllegalMoveError("underpromotion action must start from a pawn")
 
-    promotion_plane = plane - QUEEN_MOVE_PLANES
+    promotion_plane = plane - UNDERPROMOTION_START_PLANE
     direction_index = promotion_plane // 3
     piece_index = promotion_plane % 3
 

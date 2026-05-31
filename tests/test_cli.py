@@ -155,3 +155,30 @@ def test_evaluate_writes_report_file(
 
     assert exit_code == 0
     assert json.loads(output.read_text(encoding="utf-8")) == json.loads(captured.out)
+
+
+def test_chess_evaluate_prints_showcase_report(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(
+        [
+            "chess-evaluate",
+            "--seed",
+            "5",
+            "--games-per-side",
+            "1",
+            "--max-plies",
+            "4",
+            "--simulations",
+            "1",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["game"] == "chess"
+    assert payload["config"]["seed"] == 5
+    assert payload["config"]["agents"][1]["simulations"] == 1
+    assert payload["seeds"] == [5, 6]
+    assert set(payload["scores"]) == {"random_legal", "uniform_search"}
+    assert len(payload["games"]) == 2

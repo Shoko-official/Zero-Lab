@@ -12,9 +12,11 @@ from zero_lab.core.config import RuntimeConfig, load_runtime_config
 from zero_lab.core.logging import configure_logging
 from zero_lab.core.random import seed_python
 from zero_lab.evaluation import (
+    ChessBaselineConfig,
     MatchConfig,
     RandomLegalMoveAgent,
     UniformSearchAgent,
+    run_chess_baseline_evaluation,
     run_head_to_head,
     summarize_match_results,
 )
@@ -82,6 +84,17 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--simulations", type=int, default=32)
     evaluate.add_argument("--output", type=Path)
     evaluate.set_defaults(handler=run_evaluate)
+
+    chess_evaluate = subcommands.add_parser(
+        "chess-evaluate",
+        help="Run fixed-seed Chess showcase evaluation matches.",
+    )
+    chess_evaluate.add_argument("--seed", type=int, default=0)
+    chess_evaluate.add_argument("--games-per-side", type=int, default=1)
+    chess_evaluate.add_argument("--max-plies", type=int, default=24)
+    chess_evaluate.add_argument("--simulations", type=int, default=4)
+    chess_evaluate.add_argument("--output", type=Path)
+    chess_evaluate.set_defaults(handler=run_chess_evaluate)
 
     return parser
 
@@ -221,6 +234,23 @@ def run_evaluate(args: argparse.Namespace) -> int:
         ],
     }
     serialized = json.dumps(payload, indent=2, sort_keys=True)
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(serialized + "\n", encoding="utf-8")
+    print(serialized)
+    return 0
+
+
+def run_chess_evaluate(args: argparse.Namespace) -> int:
+    report = run_chess_baseline_evaluation(
+        ChessBaselineConfig(
+            seed=args.seed,
+            games_per_side=args.games_per_side,
+            max_plies=args.max_plies,
+            simulations=args.simulations,
+        )
+    )
+    serialized = report.to_json()
     if args.output is not None:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(serialized + "\n", encoding="utf-8")
