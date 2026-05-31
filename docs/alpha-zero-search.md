@@ -8,6 +8,7 @@ The current implementation provides:
 
 - PUCT tree search over deterministic `GameState` adapters.
 - Evaluator contracts for model-backed or heuristic priors and values.
+- Optional batched evaluator adapters for grouping independent leaf evaluations.
 - Legal-action prior normalization.
 - Visit-count policy targets for training.
 - Temperature-based action selection.
@@ -61,3 +62,5 @@ The CLI smoke path is:
 ```bash
 zero-lab search-demo --simulations 16
 ```
+
+For batched inference details, see [AlphaZero Batched Inference](alpha-zero-batched-inference.md).
