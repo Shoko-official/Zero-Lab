@@ -4,7 +4,13 @@ import chess
 import pytest
 
 from zero_lab.games.base import FIRST_PLAYER, SECOND_PLAYER, IllegalMoveError
-from zero_lab.games.chess import ACTION_SIZE, ChessGame, ChessState, action_from_move
+from zero_lab.games.chess import (
+    ACTION_SIZE,
+    ChessGame,
+    ChessState,
+    action_from_move,
+    move_from_action,
+)
 
 
 def test_chess_reset_exposes_standard_legal_moves() -> None:
@@ -25,6 +31,17 @@ def test_chess_applies_encoded_legal_move() -> None:
 
     assert next_state.current_player == SECOND_PLAYER
     assert next_state.to_board().piece_at(chess.E4) == chess.Piece(chess.PAWN, chess.WHITE)
+
+
+def test_chess_round_trips_all_starting_legal_moves() -> None:
+    board = chess.Board()
+
+    decoded_moves = {
+        move_from_action(board, action_from_move(board, move))
+        for move in board.legal_moves
+    }
+
+    assert decoded_moves == set(board.legal_moves)
 
 
 def test_chess_rejects_illegal_action() -> None:
