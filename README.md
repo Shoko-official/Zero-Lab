@@ -35,6 +35,9 @@ The repository is currently focused on a correctness-first AlphaZero foundation:
 
 ## Quick Start
 
+Zero Lab targets Python 3.12 for local development and CI. On Windows with multiple installed
+interpreters, replace `python` with `py -3.12`.
+
 ```bash
 python -m pip install -e .[dev]
 zero-lab smoke-test
@@ -87,6 +90,7 @@ docs/                     Maintainer-facing documentation
 - [AlphaZero Evaluation Harness](docs/alpha-zero-evaluation.md)
 - [AlphaZero Promotion Reports](docs/alpha-zero-promotion.md)
 - [Chess Showcase Evaluation](docs/chess-showcase-evaluation.md)
+- [Development Setup](docs/development.md)
 
 ## Verification
 
