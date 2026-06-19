@@ -108,6 +108,35 @@ def test_replay_summary_prints_replay_counts(
     assert payload["steps"] > 0
 
 
+def test_replay_batch_summary_prints_training_batch_counts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "self-play.jsonl"
+    main(["self-play-demo", "--simulations", "4", "--output", str(output)])
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "replay-batch-summary",
+            str(output),
+            "--batch-size",
+            "2",
+            "--drop-remainder",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["batch_size"] == 2
+    assert payload["drop_remainder"] is True
+    assert payload["source_samples"] > 0
+    assert payload["emitted_samples"] % 2 == 0
+    assert payload["action_sizes"] == [9]
+    assert payload["observation_sizes"] == [9]
+
+
 def test_evaluate_prints_baseline_report(capsys: pytest.CaptureFixture[str]) -> None:
     exit_code = main(
         [
