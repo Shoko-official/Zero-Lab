@@ -58,6 +58,7 @@ for batch in iter_torch_alpha_zero_training_batches(
 
 ## Next Step
 
-The next production step is an optimizer-backed training step over these tensors.
+The next production step is a model-backed evaluation agent that can consume retained checkpoints.
 
-See `docs/alpha-zero-losses.md` for the policy and value loss boundary.
+See `docs/alpha-zero-losses.md` for the policy and value loss boundary, and
+`docs/alpha-zero-training-loop.md` for replay-backed training and checkpoints.
