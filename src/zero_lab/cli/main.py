@@ -26,7 +26,7 @@ from zero_lab.replay import append_episode, summarize_replay
 from zero_lab.search import AlphaZeroSearch, MCTSSearchConfig
 from zero_lab.search.alpha_zero import UniformEvaluator
 from zero_lab.self_play import AlphaZeroSelfPlay, SelfPlayConfig
-from zero_lab.training.alpha_zero import summarize_alpha_zero_training_batches
+from zero_lab.training.alpha_zero.summary import summarize_alpha_zero_training_batches
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -77,6 +77,25 @@ def build_parser() -> argparse.ArgumentParser:
     replay_batch_summary.add_argument("--batch-size", type=int, default=32)
     replay_batch_summary.add_argument("--drop-remainder", action="store_true")
     replay_batch_summary.set_defaults(handler=run_replay_batch_summary)
+
+    train_alpha_zero = subcommands.add_parser(
+        "train-alpha-zero",
+        help="Train a small AlphaZero policy-value model from replay.",
+    )
+    add_runtime_options(train_alpha_zero)
+    train_alpha_zero.add_argument("input", type=Path)
+    train_alpha_zero.add_argument(
+        "--game",
+        choices=tuple(builtin_games()),
+        default="tic_tac_toe",
+    )
+    train_alpha_zero.add_argument("--batch-size", type=_positive_int, default=32)
+    train_alpha_zero.add_argument("--steps", type=_positive_int, default=1)
+    train_alpha_zero.add_argument("--learning-rate", type=_positive_float, default=0.01)
+    train_alpha_zero.add_argument("--checkpoint-dir", type=Path)
+    train_alpha_zero.add_argument("--resume-from", type=Path)
+    train_alpha_zero.add_argument("--drop-remainder", action="store_true")
+    train_alpha_zero.set_defaults(handler=run_train_alpha_zero)
 
     evaluate = subcommands.add_parser(
         "evaluate",
@@ -222,6 +241,62 @@ def run_replay_batch_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_train_alpha_zero(args: argparse.Namespace) -> int:
+    import torch
+
+    from zero_lab.training.alpha_zero import AlphaZeroTrainerConfig, train_alpha_zero_from_replay
+
+    config = resolve_runtime_config(args)
+    configure_logging(config)
+    seed_python(config.seed)
+
+    game = builtin_games()[args.game]
+    initial_state = game.reset(seed=config.seed)
+    observation_size = len(initial_state.canonical_observation())
+    action_size = game.action_size
+
+    class LinearAlphaZeroModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.policy = torch.nn.Linear(observation_size, action_size)
+            self.value = torch.nn.Linear(observation_size, 1)
+
+        def forward(self, observations: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.policy(observations), self.value(observations).squeeze(dim=1)
+
+    model = LinearAlphaZeroModel()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
+    checkpoint_dir = (
+        args.checkpoint_dir if args.checkpoint_dir is not None else config.run_dir / "checkpoints"
+    )
+    checkpoint_path = checkpoint_dir / f"{args.game}-alpha-zero.pt"
+
+    result = train_alpha_zero_from_replay(
+        args.input,
+        games={args.game: game},
+        model=model,
+        optimizer=optimizer,
+        config=AlphaZeroTrainerConfig(
+            batch_size=args.batch_size,
+            max_steps=args.steps,
+            drop_remainder=args.drop_remainder,
+            checkpoint_path=checkpoint_path,
+            resume_from=args.resume_from,
+        ),
+    )
+    payload = {
+        **result.to_dict(),
+        "batch_size": args.batch_size,
+        "drop_remainder": args.drop_remainder,
+        "game": args.game,
+        "input": str(args.input),
+        "learning_rate": args.learning_rate,
+        "run_dir": str(config.run_dir),
+    }
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
 def run_evaluate(args: argparse.Namespace) -> int:
     config = MatchConfig(
         seed=args.seed,
@@ -294,6 +369,26 @@ def evaluation_games() -> dict[str, GameRules]:
         ConnectFourGame(),
     ]
     return {game.name: game for game in games}
+
+
+def _positive_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("value must be a number") from error
+    if parsed <= 0.0:
+        raise argparse.ArgumentTypeError("value must be positive")
+    return parsed
+
+
+def _positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("value must be an integer") from error
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("value must be positive")
+    return parsed
 
 
 def main(argv: Sequence[str] | None = None) -> int:
