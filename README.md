@@ -18,7 +18,7 @@ The repository is currently focused on a correctness-first AlphaZero foundation:
 - Optional batched inference path for independent search roots.
 - Self-play episode generation and JSONL replay records.
 - Replay dataset streaming and AlphaZero training batch collation.
-- PyTorch-ready AlphaZero batches and AlphaZero loss helpers.
+- PyTorch-ready AlphaZero batches, loss helpers, replay-backed training, and checkpoints.
 - Fixed-seed evaluation reports for baseline agents.
 - Checkpoint promotion reports with candidate Elo confidence intervals.
 - Chess showcase reports with legal UCI move records and final FENs.
@@ -27,7 +27,7 @@ The repository is currently focused on a correctness-first AlphaZero foundation:
 ## Not In Scope Yet
 
 - Heavy Chess training.
-- Checkpoint file loading and model restoration.
+- Model-backed checkpoint evaluation agents.
 - Distributed self-play workers.
 - External engine adjudication.
 - SPRT and full rating ladders.
@@ -46,6 +46,7 @@ zero-lab search-demo --simulations 16
 zero-lab self-play-demo --simulations 4 --output runs/self-play/tic-tac-toe.jsonl
 zero-lab replay-summary runs/self-play/tic-tac-toe.jsonl
 zero-lab replay-batch-summary runs/self-play/tic-tac-toe.jsonl --batch-size 32
+zero-lab train-alpha-zero runs/self-play/tic-tac-toe.jsonl --run-dir runs/train/tic-tac-toe --batch-size 1 --steps 1
 zero-lab evaluate --games tic_tac_toe --simulations 4
 zero-lab chess-evaluate --max-plies 4 --simulations 1
 python -m pytest
@@ -61,6 +62,7 @@ python -m pytest
 | `zero-lab self-play-demo --simulations 4 --output runs/self-play/tic-tac-toe.jsonl` | Generate a Tic Tac Toe self-play replay file. |
 | `zero-lab replay-summary runs/self-play/tic-tac-toe.jsonl` | Summarize replay episodes and outcomes. |
 | `zero-lab replay-batch-summary runs/self-play/tic-tac-toe.jsonl --batch-size 32` | Summarize trainer-facing AlphaZero batches. |
+| `zero-lab train-alpha-zero runs/self-play/tic-tac-toe.jsonl --steps 1` | Train a bounded replay-backed AlphaZero smoke model and write a checkpoint. |
 | `zero-lab evaluate --games tic_tac_toe --simulations 4` | Run fixed-seed baseline evaluation. |
 | `zero-lab chess-evaluate --max-plies 4 --simulations 1` | Run the lightweight Chess showcase evaluation. |
 
@@ -73,7 +75,7 @@ src/zero_lab/search/      AlphaZero search, evaluators, targets, and batched inf
 src/zero_lab/models/      AlphaZero and MuZero model contracts
 src/zero_lab/self_play/   AlphaZero self-play episode generation
 src/zero_lab/replay/      Replay records, JSONL storage, summaries, and datasets
-src/zero_lab/training/    AlphaZero batches, PyTorch tensors, and losses
+src/zero_lab/training/    AlphaZero batches, PyTorch tensors, losses, loops, and checkpoints
 src/zero_lab/evaluation/  Baselines, match reports, promotion reports, and Chess showcase
 tests/                    Unit and behavior tests
 docs/                     Maintainer-facing documentation
@@ -87,6 +89,7 @@ docs/                     Maintainer-facing documentation
 - [AlphaZero Training Batches](docs/alpha-zero-training-batches.md)
 - [PyTorch AlphaZero Batches](docs/pytorch-alpha-zero-batches.md)
 - [AlphaZero Losses](docs/alpha-zero-losses.md)
+- [AlphaZero Replay Training](docs/alpha-zero-training-loop.md)
 - [AlphaZero Evaluation Harness](docs/alpha-zero-evaluation.md)
 - [AlphaZero Promotion Reports](docs/alpha-zero-promotion.md)
 - [Chess Showcase Evaluation](docs/chess-showcase-evaluation.md)
