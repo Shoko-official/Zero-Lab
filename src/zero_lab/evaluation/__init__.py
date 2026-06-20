@@ -1,6 +1,7 @@
 """Evaluation harness for fixed-seed AlphaZero baselines."""
 
 from zero_lab.evaluation.agents import (
+    AlphaZeroSearchAgent,
     EvaluationAgent,
     RandomLegalMoveAgent,
     UniformSearchAgent,
@@ -45,6 +46,7 @@ __all__ = [
     "PROMOTION_SCHEMA_VERSION",
     "AlphaZeroCheckpoint",
     "AlphaZeroPromotionReport",
+    "AlphaZeroSearchAgent",
     "ChessBaselineConfig",
     "ChessGameRecord",
     "ChessMatchConfig",
