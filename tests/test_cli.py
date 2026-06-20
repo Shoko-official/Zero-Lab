@@ -183,6 +183,59 @@ def test_train_alpha_zero_trains_replay_and_writes_checkpoint(
     assert checkpoint_path.exists()
 
 
+def test_train_alpha_zero_resumes_from_checkpoint(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    replay_path = tmp_path / "self-play.jsonl"
+    run_dir = tmp_path / "run"
+    checkpoint_path = run_dir / "checkpoints" / "tic_tac_toe-alpha-zero.pt"
+    main(
+        [
+            "self-play-demo",
+            "--simulations",
+            "4",
+            "--seed",
+            "3",
+            "--output",
+            str(replay_path),
+        ]
+    )
+    capsys.readouterr()
+    first_command = [
+        "train-alpha-zero",
+        str(replay_path),
+        "--run-dir",
+        str(run_dir),
+        "--seed",
+        "3",
+        "--batch-size",
+        "1",
+        "--steps",
+        "1",
+    ]
+
+    first_exit_code = main(first_command)
+    capsys.readouterr()
+    second_exit_code = main(
+        [
+            *first_command,
+            "--resume-from",
+            str(checkpoint_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert first_exit_code == 0
+    assert second_exit_code == 0
+    assert payload["game"] == "tic_tac_toe"
+    assert payload["steps"] == 2
+    assert payload["samples"] == 2
+    assert payload["checkpoint_path"] == str(checkpoint_path)
+    assert checkpoint_path.exists()
+
+
 def test_evaluate_prints_baseline_report(capsys: pytest.CaptureFixture[str]) -> None:
     exit_code = main(
         [
