@@ -6,6 +6,7 @@ from zero_lab.training.alpha_zero.loops import (
     AlphaZeroTrainerConfig,
     AlphaZeroTrainingLoopResult,
     load_alpha_zero_checkpoint,
+    load_alpha_zero_model_checkpoint,
     save_alpha_zero_checkpoint,
     train_alpha_zero_from_replay,
 )
@@ -54,6 +55,7 @@ __all__ = [
     "iter_alpha_zero_training_batches",
     "iter_torch_alpha_zero_training_batches",
     "load_alpha_zero_checkpoint",
+    "load_alpha_zero_model_checkpoint",
     "run_alpha_zero_training_step",
     "save_alpha_zero_checkpoint",
     "summarize_alpha_zero_training_batches",
