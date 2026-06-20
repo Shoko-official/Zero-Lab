@@ -2,9 +2,12 @@
 
 from zero_lab.training.alpha_zero import (
     AlphaZeroBatchSummary,
+    AlphaZeroCheckpointMetadata,
     AlphaZeroLoss,
     AlphaZeroLossConfig,
+    AlphaZeroTrainerConfig,
     AlphaZeroTrainingBatch,
+    AlphaZeroTrainingLoopResult,
     AlphaZeroTrainStepConfig,
     AlphaZeroTrainStepResult,
     TorchAlphaZeroTrainingBatch,
@@ -15,17 +18,23 @@ from zero_lab.training.alpha_zero import (
     build_alpha_zero_training_batch,
     iter_alpha_zero_training_batches,
     iter_torch_alpha_zero_training_batches,
+    load_alpha_zero_checkpoint,
     run_alpha_zero_training_step,
+    save_alpha_zero_checkpoint,
     summarize_alpha_zero_training_batches,
+    train_alpha_zero_from_replay,
 )
 
 __all__ = [
     "AlphaZeroBatchSummary",
+    "AlphaZeroCheckpointMetadata",
     "AlphaZeroLoss",
     "AlphaZeroLossConfig",
     "AlphaZeroTrainStepConfig",
     "AlphaZeroTrainStepResult",
+    "AlphaZeroTrainerConfig",
     "AlphaZeroTrainingBatch",
+    "AlphaZeroTrainingLoopResult",
     "TorchAlphaZeroTrainingBatch",
     "alpha_zero_loss",
     "alpha_zero_policy_loss",
@@ -34,6 +43,9 @@ __all__ = [
     "build_alpha_zero_training_batch",
     "iter_alpha_zero_training_batches",
     "iter_torch_alpha_zero_training_batches",
+    "load_alpha_zero_checkpoint",
     "run_alpha_zero_training_step",
+    "save_alpha_zero_checkpoint",
     "summarize_alpha_zero_training_batches",
+    "train_alpha_zero_from_replay",
 ]
