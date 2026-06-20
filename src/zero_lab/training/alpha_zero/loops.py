@@ -203,6 +203,26 @@ def load_alpha_zero_checkpoint(
     model.load_state_dict(model_state)
     optimizer.load_state_dict(cast(dict[str, object], optimizer_state))
 
+    return _read_checkpoint_metadata(payload)
+
+
+def load_alpha_zero_model_checkpoint(
+    path: Path,
+    *,
+    model: torch.nn.Module,
+) -> AlphaZeroCheckpointMetadata:
+    payload = _read_mapping(cast(object, torch.load(Path(path), map_location="cpu")))
+    schema_version = _read_int(payload, "schema_version")
+    if schema_version != ALPHA_ZERO_CHECKPOINT_VERSION:
+        raise ValueError("unsupported AlphaZero checkpoint schema version")
+
+    model_state = _read_mapping(payload.get("model_state_dict"))
+    model.load_state_dict(model_state)
+
+    return _read_checkpoint_metadata(payload)
+
+
+def _read_checkpoint_metadata(payload: Mapping[str, object]) -> AlphaZeroCheckpointMetadata:
     return AlphaZeroCheckpointMetadata(
         steps=_read_int(payload, "steps"),
         samples=_read_int(payload, "samples"),

@@ -11,6 +11,7 @@ from zero_lab.training.alpha_zero import (
     AlphaZeroCheckpointMetadata,
     AlphaZeroTrainerConfig,
     load_alpha_zero_checkpoint,
+    load_alpha_zero_model_checkpoint,
     train_alpha_zero_from_replay,
 )
 
@@ -100,6 +101,41 @@ def test_train_alpha_zero_from_replay_resumes_checkpoint(tmp_path: Path) -> None
         last_value_loss=result.last_value_loss,
     )
     assert metadata.to_dict()["steps"] == 2
+
+
+def test_load_alpha_zero_model_checkpoint_restores_model_without_optimizer(tmp_path: Path) -> None:
+    replay_path = write_replay(tmp_path / "episodes.jsonl")
+    checkpoint_path = tmp_path / "checkpoints" / "alpha-zero.pt"
+    trained_model = TinyAlphaZeroModel()
+    optimizer = torch.optim.SGD(trained_model.parameters(), lr=0.1)
+    result = train_alpha_zero_from_replay(
+        replay_path,
+        games={"tic_tac_toe": TicTacToeGame()},
+        model=trained_model,
+        optimizer=optimizer,
+        config=AlphaZeroTrainerConfig(
+            batch_size=1,
+            max_steps=1,
+            checkpoint_path=checkpoint_path,
+        ),
+    )
+    restored_model = TinyAlphaZeroModel()
+
+    metadata = load_alpha_zero_model_checkpoint(checkpoint_path, model=restored_model)
+
+    assert metadata == AlphaZeroCheckpointMetadata(
+        steps=result.steps,
+        samples=result.samples,
+        last_total_loss=result.last_total_loss,
+        last_policy_loss=result.last_policy_loss,
+        last_value_loss=result.last_value_loss,
+    )
+    for trained_parameter, restored_parameter in zip(
+        trained_model.parameters(),
+        restored_model.parameters(),
+        strict=True,
+    ):
+        assert torch.equal(trained_parameter, restored_parameter)
 
 
 def test_train_alpha_zero_from_replay_rejects_empty_replay(tmp_path: Path) -> None:
