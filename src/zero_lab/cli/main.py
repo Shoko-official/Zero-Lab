@@ -244,7 +244,11 @@ def run_replay_batch_summary(args: argparse.Namespace) -> int:
 def run_train_alpha_zero(args: argparse.Namespace) -> int:
     import torch
 
-    from zero_lab.training.alpha_zero import AlphaZeroTrainerConfig, train_alpha_zero_from_replay
+    from zero_lab.training.alpha_zero import (
+        AlphaZeroTrainerConfig,
+        LinearAlphaZeroModel,
+        train_alpha_zero_from_replay,
+    )
 
     config = resolve_runtime_config(args)
     configure_logging(config)
@@ -255,16 +259,7 @@ def run_train_alpha_zero(args: argparse.Namespace) -> int:
     observation_size = len(initial_state.canonical_observation())
     action_size = game.action_size
 
-    class LinearAlphaZeroModel(torch.nn.Module):
-        def __init__(self) -> None:
-            super().__init__()
-            self.policy = torch.nn.Linear(observation_size, action_size)
-            self.value = torch.nn.Linear(observation_size, 1)
-
-        def forward(self, observations: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-            return self.policy(observations), self.value(observations).squeeze(dim=1)
-
-    model = LinearAlphaZeroModel()
+    model = LinearAlphaZeroModel(observation_size=observation_size, action_size=action_size)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     checkpoint_dir = (
         args.checkpoint_dir if args.checkpoint_dir is not None else config.run_dir / "checkpoints"
