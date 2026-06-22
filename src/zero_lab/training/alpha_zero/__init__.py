@@ -36,7 +36,11 @@ from zero_lab.training.alpha_zero.torch_batches import (
     iter_torch_alpha_zero_training_batches,
 )
 from zero_lab.training.alpha_zero.torch_evaluator import TorchAlphaZeroEvaluator
-from zero_lab.training.alpha_zero.torch_models import LinearAlphaZeroModel
+from zero_lab.training.alpha_zero.torch_models import (
+    LinearAlphaZeroModel,
+    LoadedLinearAlphaZeroEvaluator,
+    load_linear_alpha_zero_evaluator_checkpoint,
+)
 
 __all__ = [
     "AlphaZeroBatchSummary",
@@ -49,6 +53,7 @@ __all__ = [
     "AlphaZeroTrainingBatch",
     "AlphaZeroTrainingLoopResult",
     "LinearAlphaZeroModel",
+    "LoadedLinearAlphaZeroEvaluator",
     "TorchAlphaZeroTrainingBatch",
     "TorchAlphaZeroEvaluator",
     "alpha_zero_loss",
@@ -60,6 +65,7 @@ __all__ = [
     "iter_torch_alpha_zero_training_batches",
     "load_alpha_zero_checkpoint",
     "load_alpha_zero_model_checkpoint",
+    "load_linear_alpha_zero_evaluator_checkpoint",
     "run_alpha_zero_training_step",
     "save_alpha_zero_checkpoint",
     "summarize_alpha_zero_training_batches",
