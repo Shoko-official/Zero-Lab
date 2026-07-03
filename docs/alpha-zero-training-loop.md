@@ -14,11 +14,12 @@ The current implementation provides:
 - Checkpoint save and load for model state, optimizer state, and training metadata.
 - Resume support through `AlphaZeroTrainerConfig.resume_from`.
 - A `train-alpha-zero` CLI smoke path for Tic Tac Toe, Connect Four, and Chess replay files.
+- An `evaluate-linear-checkpoint` CLI smoke path for fixed-seed evaluation against a random baseline.
 
 It does not yet include:
 
 - Production model architectures.
-- Model-backed evaluation agents.
+- Model-backed evaluation agents for non-linear architectures.
 - Distributed replay workers.
 - Mixed precision or accelerator-specific tuning.
 - Checkpoint promotion into a rating ladder.
@@ -56,6 +57,20 @@ runs/train/tic-tac-toe/checkpoints/tic_tac_toe-alpha-zero.pt
 The CLI model is a small linear policy-value model. It exists as a smoke and recovery path for the
 training loop, not as a production AlphaZero architecture.
 
+Evaluate the saved linear checkpoint:
+
+```bash
+zero-lab evaluate-linear-checkpoint \
+  runs/train/tic-tac-toe/checkpoints/tic_tac_toe-alpha-zero.pt \
+  --game tic_tac_toe \
+  --simulations 1 \
+  --games-per-side 1 \
+  --seed 3
+```
+
+The command loads the checkpoint into `LinearAlphaZeroModel`, wraps it in `TorchAlphaZeroEvaluator`,
+then runs fixed-seed matches against `random_legal`.
+
 ## JSON Output
 
 `train-alpha-zero` prints a JSON summary containing:
@@ -68,6 +83,14 @@ training loop, not as a production AlphaZero architecture.
 - `last_total_loss`, `last_policy_loss`, and `last_value_loss`.
 - `checkpoint_path`: saved checkpoint path.
 - `run_dir`: runtime artifact directory.
+
+`evaluate-linear-checkpoint` prints a JSON evaluation report containing:
+
+- `checkpoint.path`: checkpoint path.
+- `checkpoint.metadata`: saved training metadata.
+- `checkpoint.observation_size` and `checkpoint.action_size`.
+- `config`: match config and evaluated agents.
+- `games`, `matches`, `scores`, `seeds`, and `limitations`.
 
 ## Resume
 

@@ -12,6 +12,7 @@ from zero_lab.core.config import RuntimeConfig, load_runtime_config
 from zero_lab.core.logging import configure_logging
 from zero_lab.core.random import seed_python
 from zero_lab.evaluation import (
+    AlphaZeroSearchAgent,
     ChessBaselineConfig,
     MatchConfig,
     RandomLegalMoveAgent,
@@ -113,6 +114,24 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--simulations", type=int, default=32)
     evaluate.add_argument("--output", type=Path)
     evaluate.set_defaults(handler=run_evaluate)
+
+    linear_checkpoint_evaluate = subcommands.add_parser(
+        "evaluate-linear-checkpoint",
+        help="Evaluate a linear AlphaZero checkpoint against a random baseline.",
+    )
+    linear_checkpoint_evaluate.add_argument("checkpoint", type=Path)
+    linear_checkpoint_evaluate.add_argument(
+        "--game",
+        choices=tuple(evaluation_games()),
+        default="tic_tac_toe",
+    )
+    linear_checkpoint_evaluate.add_argument("--seed", type=int, default=0)
+    linear_checkpoint_evaluate.add_argument("--games-per-side", type=_positive_int, default=1)
+    linear_checkpoint_evaluate.add_argument("--max-moves", type=_positive_int, default=512)
+    linear_checkpoint_evaluate.add_argument("--simulations", type=_positive_int, default=32)
+    linear_checkpoint_evaluate.add_argument("--temperature", type=_non_negative_float, default=0.0)
+    linear_checkpoint_evaluate.add_argument("--output", type=Path)
+    linear_checkpoint_evaluate.set_defaults(handler=run_evaluate_linear_checkpoint)
 
     chess_evaluate = subcommands.add_parser(
         "chess-evaluate",
@@ -332,6 +351,64 @@ def run_evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_evaluate_linear_checkpoint(args: argparse.Namespace) -> int:
+    from zero_lab.training.alpha_zero import load_linear_alpha_zero_evaluator_checkpoint
+
+    game = evaluation_games()[args.game]
+    initial_state = game.reset(seed=args.seed)
+    loaded = load_linear_alpha_zero_evaluator_checkpoint(
+        args.checkpoint,
+        observation_size=len(initial_state.canonical_observation()),
+        action_size=game.action_size,
+    )
+    config = MatchConfig(
+        seed=args.seed,
+        games_per_side=args.games_per_side,
+        max_moves=args.max_moves,
+    )
+    first_agent = RandomLegalMoveAgent()
+    second_agent = AlphaZeroSearchAgent(
+        loaded.evaluator,
+        simulations=args.simulations,
+        temperature=args.temperature,
+        label="linear_checkpoint",
+    )
+    report = summarize_match_results(
+        run_head_to_head(
+            games=(game,),
+            first_agent=first_agent,
+            second_agent=second_agent,
+            config=config,
+        ),
+        config=config,
+    )
+    payload = report.to_dict()
+    payload["checkpoint"] = {
+        "action_size": game.action_size,
+        "metadata": loaded.metadata.to_dict(),
+        "observation_size": len(initial_state.canonical_observation()),
+        "path": str(args.checkpoint),
+    }
+    payload["config"] = {
+        **config.to_dict(),
+        "agents": [
+            {"name": first_agent.name, "role": "agent_one"},
+            {
+                "name": second_agent.name,
+                "role": "agent_two",
+                "simulations": second_agent.simulations,
+                "temperature": second_agent.temperature,
+            },
+        ],
+    }
+    serialized = json.dumps(payload, indent=2, sort_keys=True)
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(serialized + "\n", encoding="utf-8")
+    print(serialized)
+    return 0
+
+
 def run_chess_evaluate(args: argparse.Namespace) -> int:
     report = run_chess_baseline_evaluation(
         ChessBaselineConfig(
@@ -383,6 +460,16 @@ def _positive_int(value: str) -> int:
         raise argparse.ArgumentTypeError("value must be an integer") from error
     if parsed <= 0:
         raise argparse.ArgumentTypeError("value must be positive")
+    return parsed
+
+
+def _non_negative_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("value must be a number") from error
+    if parsed < 0.0:
+        raise argparse.ArgumentTypeError("value must be non-negative")
     return parsed
 
 
