@@ -14,6 +14,7 @@ The current implementation provides:
 - Checkpoint save and load for model state, optimizer state, and training metadata.
 - Resume support through `AlphaZeroTrainerConfig.resume_from`.
 - A `train-alpha-zero` CLI smoke path for Tic Tac Toe, Connect Four, and Chess replay files.
+- Linear and MLP policy-value model choices for bounded training smoke runs.
 - An `evaluate-linear-checkpoint` CLI smoke path for fixed-seed evaluation against a random baseline.
 - A `promote-linear-checkpoint` CLI smoke path for champion versus candidate promotion reports.
 
@@ -39,7 +40,7 @@ Inspect trainer-facing batches:
 zero-lab replay-batch-summary runs/self-play/tic-tac-toe.jsonl --batch-size 1
 ```
 
-Run one bounded training step:
+Run one bounded training step with the default linear model:
 
 ```bash
 zero-lab train-alpha-zero runs/self-play/tic-tac-toe.jsonl \
@@ -49,14 +50,27 @@ zero-lab train-alpha-zero runs/self-play/tic-tac-toe.jsonl \
   --seed 3
 ```
 
+Run the same smoke flow with the MLP model:
+
+```bash
+zero-lab train-alpha-zero runs/self-play/tic-tac-toe.jsonl \
+  --run-dir runs/train/tic-tac-toe-mlp \
+  --batch-size 1 \
+  --steps 1 \
+  --model mlp \
+  --hidden-size 128 \
+  --seed 3
+```
+
 By default, the command writes:
 
 ```text
 runs/train/tic-tac-toe/checkpoints/tic_tac_toe-alpha-zero.pt
 ```
 
-The CLI model is a small linear policy-value model. It exists as a smoke and recovery path for the
-training loop, not as a production AlphaZero architecture.
+The default CLI model is a small linear policy-value model. The `--model mlp` option selects a
+single-hidden-layer `MLPAlphaZeroModel` for non-linear smoke runs. Both paths exist as recovery
+checks for the training loop, not as production AlphaZero architectures.
 
 Evaluate the saved linear checkpoint:
 
@@ -96,6 +110,8 @@ linear checkpoints.
 - `game`: selected game adapter.
 - `input`: replay file path.
 - `batch_size`: requested batch size.
+- `model`: selected model architecture.
+- `hidden_size`: requested MLP hidden size when `model` is `mlp`.
 - `steps`: total optimizer steps represented by the checkpoint.
 - `samples`: total replay samples consumed by the checkpoint.
 - `last_total_loss`, `last_policy_loss`, and `last_value_loss`.
