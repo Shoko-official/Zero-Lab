@@ -97,6 +97,8 @@ def build_parser() -> argparse.ArgumentParser:
     train_alpha_zero.add_argument("--batch-size", type=_positive_int, default=32)
     train_alpha_zero.add_argument("--steps", type=_positive_int, default=1)
     train_alpha_zero.add_argument("--learning-rate", type=_positive_float, default=0.01)
+    train_alpha_zero.add_argument("--model", choices=("linear", "mlp"), default="linear")
+    train_alpha_zero.add_argument("--hidden-size", type=_positive_int, default=128)
     train_alpha_zero.add_argument("--checkpoint-dir", type=Path)
     train_alpha_zero.add_argument("--resume-from", type=Path)
     train_alpha_zero.add_argument("--drop-remainder", action="store_true")
@@ -295,6 +297,7 @@ def run_train_alpha_zero(args: argparse.Namespace) -> int:
     from zero_lab.training.alpha_zero import (
         AlphaZeroTrainerConfig,
         LinearAlphaZeroModel,
+        MLPAlphaZeroModel,
         train_alpha_zero_from_replay,
     )
 
@@ -307,7 +310,15 @@ def run_train_alpha_zero(args: argparse.Namespace) -> int:
     observation_size = len(initial_state.canonical_observation())
     action_size = game.action_size
 
-    model = LinearAlphaZeroModel(observation_size=observation_size, action_size=action_size)
+    model: torch.nn.Module
+    if args.model == "linear":
+        model = LinearAlphaZeroModel(observation_size=observation_size, action_size=action_size)
+    else:
+        model = MLPAlphaZeroModel(
+            observation_size=observation_size,
+            action_size=action_size,
+            hidden_size=args.hidden_size,
+        )
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     checkpoint_dir = (
         args.checkpoint_dir if args.checkpoint_dir is not None else config.run_dir / "checkpoints"
@@ -334,8 +345,11 @@ def run_train_alpha_zero(args: argparse.Namespace) -> int:
         "game": args.game,
         "input": str(args.input),
         "learning_rate": args.learning_rate,
+        "model": args.model,
         "run_dir": str(config.run_dir),
     }
+    if args.model == "mlp":
+        payload["hidden_size"] = args.hidden_size
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
 
