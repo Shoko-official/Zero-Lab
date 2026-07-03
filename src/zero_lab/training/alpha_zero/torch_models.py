@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import torch
 
@@ -12,6 +13,8 @@ from zero_lab.training.alpha_zero.loops import (
     load_alpha_zero_model_checkpoint,
 )
 from zero_lab.training.alpha_zero.torch_evaluator import TorchAlphaZeroEvaluator
+
+AlphaZeroModelName = Literal["linear", "mlp"]
 
 
 class LinearAlphaZeroModel(torch.nn.Module):
@@ -44,6 +47,17 @@ class MLPAlphaZeroModel(torch.nn.Module):
         return self.policy(features), self.value(features).squeeze(dim=1)
 
 
+AlphaZeroTorchModel = LinearAlphaZeroModel | MLPAlphaZeroModel
+
+
+@dataclass(frozen=True, slots=True)
+class LoadedAlphaZeroEvaluator:
+    model_name: AlphaZeroModelName
+    model: AlphaZeroTorchModel
+    evaluator: TorchAlphaZeroEvaluator
+    metadata: AlphaZeroCheckpointMetadata
+
+
 @dataclass(frozen=True, slots=True)
 class LoadedLinearAlphaZeroEvaluator:
     model: LinearAlphaZeroModel
@@ -59,19 +73,73 @@ def load_linear_alpha_zero_evaluator_checkpoint(
     device: torch.device | str | None = None,
     dtype: torch.dtype = torch.float32,
 ) -> LoadedLinearAlphaZeroEvaluator:
-    model = LinearAlphaZeroModel(observation_size=observation_size, action_size=action_size)
-    metadata = load_alpha_zero_model_checkpoint(Path(path), model=model)
+    loaded = load_alpha_zero_evaluator_checkpoint(
+        path,
+        model="linear",
+        observation_size=observation_size,
+        action_size=action_size,
+        device=device,
+        dtype=dtype,
+    )
+    if not isinstance(loaded.model, LinearAlphaZeroModel):
+        raise TypeError("linear checkpoint loader restored unexpected model type")
+    return LoadedLinearAlphaZeroEvaluator(
+        model=loaded.model,
+        evaluator=loaded.evaluator,
+        metadata=loaded.metadata,
+    )
+
+
+def load_alpha_zero_evaluator_checkpoint(
+    path: Path | str,
+    *,
+    model: AlphaZeroModelName,
+    observation_size: int,
+    action_size: int,
+    hidden_size: int = 128,
+    device: torch.device | str | None = None,
+    dtype: torch.dtype = torch.float32,
+) -> LoadedAlphaZeroEvaluator:
+    model_name, torch_model = _build_alpha_zero_model(
+        model,
+        observation_size=observation_size,
+        action_size=action_size,
+        hidden_size=hidden_size,
+    )
+    metadata = load_alpha_zero_model_checkpoint(Path(path), model=torch_model)
     target_device = None if device is None else torch.device(device)
     if target_device is None:
-        model.to(dtype=dtype)
+        torch_model.to(dtype=dtype)
     else:
-        model.to(device=target_device, dtype=dtype)
-    evaluator = TorchAlphaZeroEvaluator(model, device=target_device, dtype=dtype)
-    return LoadedLinearAlphaZeroEvaluator(
-        model=model,
+        torch_model.to(device=target_device, dtype=dtype)
+    evaluator = TorchAlphaZeroEvaluator(torch_model, device=target_device, dtype=dtype)
+    return LoadedAlphaZeroEvaluator(
+        model_name=model_name,
+        model=torch_model,
         evaluator=evaluator,
         metadata=metadata,
     )
+
+
+def _build_alpha_zero_model(
+    model: AlphaZeroModelName,
+    *,
+    observation_size: int,
+    action_size: int,
+    hidden_size: int,
+) -> tuple[AlphaZeroModelName, AlphaZeroTorchModel]:
+    if model == "linear":
+        return model, LinearAlphaZeroModel(
+            observation_size=observation_size,
+            action_size=action_size,
+        )
+    if model == "mlp":
+        return model, MLPAlphaZeroModel(
+            observation_size=observation_size,
+            action_size=action_size,
+            hidden_size=hidden_size,
+        )
+    raise ValueError("model must be one of: linear, mlp")
 
 
 def _require_positive_integer(value: int, name: str) -> None:

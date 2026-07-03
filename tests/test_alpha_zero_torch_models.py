@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 import torch
@@ -11,6 +12,7 @@ from zero_lab.training.alpha_zero import (
     AlphaZeroTrainerConfig,
     LinearAlphaZeroModel,
     MLPAlphaZeroModel,
+    load_alpha_zero_evaluator_checkpoint,
     load_linear_alpha_zero_evaluator_checkpoint,
     train_alpha_zero_from_replay,
 )
@@ -83,6 +85,52 @@ def test_load_linear_alpha_zero_evaluator_checkpoint_evaluates_restored_model(
     assert loaded.metadata.samples == result.samples
     assert set(evaluation.policy) == set(TicTacToeState().legal_actions())
     assert sum(evaluation.policy.values()) == pytest.approx(1.0)
+
+
+def test_load_alpha_zero_evaluator_checkpoint_evaluates_restored_mlp_model(
+    tmp_path: Path,
+) -> None:
+    replay_path = tmp_path / "episodes.jsonl"
+    checkpoint_path = tmp_path / "checkpoints" / "alpha-zero.pt"
+    write_replay(replay_path)
+    model = MLPAlphaZeroModel(observation_size=9, action_size=9, hidden_size=16)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    result = train_alpha_zero_from_replay(
+        replay_path,
+        games={"tic_tac_toe": TicTacToeGame()},
+        model=model,
+        optimizer=optimizer,
+        config=AlphaZeroTrainerConfig(
+            batch_size=1,
+            max_steps=1,
+            checkpoint_path=checkpoint_path,
+        ),
+    )
+
+    loaded = load_alpha_zero_evaluator_checkpoint(
+        checkpoint_path,
+        model="mlp",
+        observation_size=9,
+        action_size=9,
+        hidden_size=16,
+    )
+    evaluation = loaded.evaluator.evaluate(TicTacToeState())
+
+    assert loaded.model_name == "mlp"
+    assert loaded.metadata.steps == result.steps
+    assert loaded.metadata.samples == result.samples
+    assert set(evaluation.policy) == set(TicTacToeState().legal_actions())
+    assert sum(evaluation.policy.values()) == pytest.approx(1.0)
+
+
+def test_load_alpha_zero_evaluator_checkpoint_rejects_unknown_model(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="model"):
+        load_alpha_zero_evaluator_checkpoint(
+            tmp_path / "missing.pt",
+            model=cast(Any, "conv"),
+            observation_size=9,
+            action_size=9,
+        )
 
 
 def write_replay(path: Path) -> None:
