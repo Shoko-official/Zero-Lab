@@ -10,6 +10,7 @@ from zero_lab.replay import EpisodeRecord, EpisodeStep, append_episode
 from zero_lab.training.alpha_zero import (
     AlphaZeroTrainerConfig,
     LinearAlphaZeroModel,
+    MLPAlphaZeroModel,
     load_linear_alpha_zero_evaluator_checkpoint,
     train_alpha_zero_from_replay,
 )
@@ -25,11 +26,30 @@ def test_linear_alpha_zero_model_returns_policy_logits_and_values() -> None:
     assert values.shape == torch.Size((2,))
 
 
+def test_mlp_alpha_zero_model_returns_policy_logits_and_values() -> None:
+    model = MLPAlphaZeroModel(observation_size=9, action_size=9, hidden_size=16)
+    observations = torch.zeros((2, 9), dtype=torch.float32)
+
+    policy_logits, values = model(observations)
+
+    assert policy_logits.shape == torch.Size((2, 9))
+    assert values.shape == torch.Size((2,))
+
+
 def test_linear_alpha_zero_model_validates_sizes() -> None:
     with pytest.raises(ValueError, match="observation_size"):
         LinearAlphaZeroModel(observation_size=0, action_size=9)
     with pytest.raises(ValueError, match="action_size"):
         LinearAlphaZeroModel(observation_size=9, action_size=0)
+
+
+def test_mlp_alpha_zero_model_validates_sizes() -> None:
+    with pytest.raises(ValueError, match="observation_size"):
+        MLPAlphaZeroModel(observation_size=0, action_size=9, hidden_size=16)
+    with pytest.raises(ValueError, match="action_size"):
+        MLPAlphaZeroModel(observation_size=9, action_size=0, hidden_size=16)
+    with pytest.raises(ValueError, match="hidden_size"):
+        MLPAlphaZeroModel(observation_size=9, action_size=9, hidden_size=0)
 
 
 def test_load_linear_alpha_zero_evaluator_checkpoint_evaluates_restored_model(

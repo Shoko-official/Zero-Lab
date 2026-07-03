@@ -26,6 +26,24 @@ class LinearAlphaZeroModel(torch.nn.Module):
         return self.policy(observations), self.value(observations).squeeze(dim=1)
 
 
+class MLPAlphaZeroModel(torch.nn.Module):
+    def __init__(self, observation_size: int, action_size: int, hidden_size: int = 128) -> None:
+        super().__init__()
+        _require_positive_integer(observation_size, "observation_size")
+        _require_positive_integer(action_size, "action_size")
+        _require_positive_integer(hidden_size, "hidden_size")
+        self.trunk = torch.nn.Sequential(
+            torch.nn.Linear(observation_size, hidden_size),
+            torch.nn.ReLU(),
+        )
+        self.policy = torch.nn.Linear(hidden_size, action_size)
+        self.value = torch.nn.Linear(hidden_size, 1)
+
+    def forward(self, observations: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        features = self.trunk(observations)
+        return self.policy(features), self.value(features).squeeze(dim=1)
+
+
 @dataclass(frozen=True, slots=True)
 class LoadedLinearAlphaZeroEvaluator:
     model: LinearAlphaZeroModel
