@@ -39,6 +39,7 @@ from zero_lab.training.alpha_zero.torch_evaluator import TorchAlphaZeroEvaluator
 from zero_lab.training.alpha_zero.torch_models import (
     LinearAlphaZeroModel,
     LoadedLinearAlphaZeroEvaluator,
+    MLPAlphaZeroModel,
     load_linear_alpha_zero_evaluator_checkpoint,
 )
 
@@ -54,6 +55,7 @@ __all__ = [
     "AlphaZeroTrainingLoopResult",
     "LinearAlphaZeroModel",
     "LoadedLinearAlphaZeroEvaluator",
+    "MLPAlphaZeroModel",
     "TorchAlphaZeroTrainingBatch",
     "TorchAlphaZeroEvaluator",
     "alpha_zero_loss",
