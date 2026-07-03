@@ -15,6 +15,7 @@ The current implementation provides:
 - Resume support through `AlphaZeroTrainerConfig.resume_from`.
 - A `train-alpha-zero` CLI smoke path for Tic Tac Toe, Connect Four, and Chess replay files.
 - An `evaluate-linear-checkpoint` CLI smoke path for fixed-seed evaluation against a random baseline.
+- A `promote-linear-checkpoint` CLI smoke path for champion versus candidate promotion reports.
 
 It does not yet include:
 
@@ -71,6 +72,23 @@ zero-lab evaluate-linear-checkpoint \
 The command loads the checkpoint into `LinearAlphaZeroModel`, wraps it in `TorchAlphaZeroEvaluator`,
 then runs fixed-seed matches against `random_legal`.
 
+Compare two retained linear checkpoints:
+
+```bash
+zero-lab promote-linear-checkpoint \
+  --champion runs/train/tic-tac-toe/checkpoints/champion.pt \
+  --candidate runs/train/tic-tac-toe/checkpoints/candidate.pt \
+  --champion-commit aaa1111 \
+  --candidate-commit bbb2222 \
+  --game tic_tac_toe \
+  --simulations 1 \
+  --games-per-side 1 \
+  --seed 3
+```
+
+The command reuses the promotion-report schema and adds `checkpoint_metadata` for both loaded
+linear checkpoints.
+
 ## JSON Output
 
 `train-alpha-zero` prints a JSON summary containing:
@@ -91,6 +109,14 @@ then runs fixed-seed matches against `random_legal`.
 - `checkpoint.observation_size` and `checkpoint.action_size`.
 - `config`: match config and evaluated agents.
 - `games`, `matches`, `scores`, `seeds`, and `limitations`.
+
+`promote-linear-checkpoint` prints an AlphaZero promotion report containing:
+
+- `champion` and `candidate`: checkpoint name, URI, and commit hash.
+- `checkpoint_metadata`: loaded training metadata for both checkpoints.
+- `candidate_elo_confidence_interval`.
+- `promotion.decision`.
+- `results`: fixed-seed match report.
 
 ## Resume
 

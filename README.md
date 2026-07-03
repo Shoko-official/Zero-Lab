@@ -48,6 +48,7 @@ zero-lab replay-summary runs/self-play/tic-tac-toe.jsonl
 zero-lab replay-batch-summary runs/self-play/tic-tac-toe.jsonl --batch-size 32
 zero-lab train-alpha-zero runs/self-play/tic-tac-toe.jsonl --run-dir runs/train/tic-tac-toe --batch-size 1 --steps 1
 zero-lab evaluate-linear-checkpoint runs/train/tic-tac-toe/checkpoints/tic_tac_toe-alpha-zero.pt --simulations 1
+zero-lab promote-linear-checkpoint --champion runs/train/tic-tac-toe/checkpoints/tic_tac_toe-alpha-zero.pt --candidate runs/train/tic-tac-toe/checkpoints/tic_tac_toe-alpha-zero.pt --champion-commit HEAD --candidate-commit HEAD --simulations 1
 zero-lab evaluate --games tic_tac_toe --simulations 4
 zero-lab chess-evaluate --max-plies 4 --simulations 1
 python -m pytest
@@ -65,6 +66,7 @@ python -m pytest
 | `zero-lab replay-batch-summary runs/self-play/tic-tac-toe.jsonl --batch-size 32` | Summarize trainer-facing AlphaZero batches. |
 | `zero-lab train-alpha-zero runs/self-play/tic-tac-toe.jsonl --steps 1` | Train a bounded replay-backed AlphaZero smoke model and write a checkpoint. |
 | `zero-lab evaluate-linear-checkpoint runs/train/tic-tac-toe/checkpoints/tic_tac_toe-alpha-zero.pt --simulations 1` | Evaluate a linear AlphaZero checkpoint against a random baseline. |
+| `zero-lab promote-linear-checkpoint --champion checkpoints/champion.pt --candidate checkpoints/candidate.pt --champion-commit HEAD --candidate-commit HEAD` | Build a promotion report for two linear AlphaZero checkpoints. |
 | `zero-lab evaluate --games tic_tac_toe --simulations 4` | Run fixed-seed baseline evaluation. |
 | `zero-lab chess-evaluate --max-plies 4 --simulations 1` | Run the lightweight Chess showcase evaluation. |
 

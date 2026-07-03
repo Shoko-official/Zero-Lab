@@ -12,11 +12,15 @@ from zero_lab.core.config import RuntimeConfig, load_runtime_config
 from zero_lab.core.logging import configure_logging
 from zero_lab.core.random import seed_python
 from zero_lab.evaluation import (
+    AlphaZeroCheckpoint,
     AlphaZeroSearchAgent,
     ChessBaselineConfig,
     MatchConfig,
+    PromotionConfig,
     RandomLegalMoveAgent,
     UniformSearchAgent,
+    build_alpha_zero_promotion_report,
+    compare_alpha_zero_checkpoints,
     run_chess_baseline_evaluation,
     run_head_to_head,
     summarize_match_results,
@@ -132,6 +136,31 @@ def build_parser() -> argparse.ArgumentParser:
     linear_checkpoint_evaluate.add_argument("--temperature", type=_non_negative_float, default=0.0)
     linear_checkpoint_evaluate.add_argument("--output", type=Path)
     linear_checkpoint_evaluate.set_defaults(handler=run_evaluate_linear_checkpoint)
+
+    linear_checkpoint_promote = subcommands.add_parser(
+        "promote-linear-checkpoint",
+        help="Build a promotion report for two linear AlphaZero checkpoints.",
+    )
+    linear_checkpoint_promote.add_argument("--champion", type=Path, required=True)
+    linear_checkpoint_promote.add_argument("--candidate", type=Path, required=True)
+    linear_checkpoint_promote.add_argument("--champion-name", default="champion")
+    linear_checkpoint_promote.add_argument("--candidate-name", default="candidate")
+    linear_checkpoint_promote.add_argument("--champion-commit", required=True)
+    linear_checkpoint_promote.add_argument("--candidate-commit", required=True)
+    linear_checkpoint_promote.add_argument(
+        "--game",
+        choices=tuple(evaluation_games()),
+        default="tic_tac_toe",
+    )
+    linear_checkpoint_promote.add_argument("--seed", type=int, default=0)
+    linear_checkpoint_promote.add_argument("--games-per-side", type=_positive_int, default=1)
+    linear_checkpoint_promote.add_argument("--max-moves", type=_positive_int, default=512)
+    linear_checkpoint_promote.add_argument("--simulations", type=_positive_int, default=32)
+    linear_checkpoint_promote.add_argument("--temperature", type=_non_negative_float, default=0.0)
+    linear_checkpoint_promote.add_argument("--confidence-level", type=_positive_float, default=0.95)
+    linear_checkpoint_promote.add_argument("--promotion-elo-threshold", type=float, default=0.0)
+    linear_checkpoint_promote.add_argument("--output", type=Path)
+    linear_checkpoint_promote.set_defaults(handler=run_promote_linear_checkpoint)
 
     chess_evaluate = subcommands.add_parser(
         "chess-evaluate",
@@ -400,6 +429,76 @@ def run_evaluate_linear_checkpoint(args: argparse.Namespace) -> int:
                 "temperature": second_agent.temperature,
             },
         ],
+    }
+    serialized = json.dumps(payload, indent=2, sort_keys=True)
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(serialized + "\n", encoding="utf-8")
+    print(serialized)
+    return 0
+
+
+def run_promote_linear_checkpoint(args: argparse.Namespace) -> int:
+    from zero_lab.training.alpha_zero import load_linear_alpha_zero_evaluator_checkpoint
+
+    game = evaluation_games()[args.game]
+    initial_state = game.reset(seed=args.seed)
+    observation_size = len(initial_state.canonical_observation())
+    champion = load_linear_alpha_zero_evaluator_checkpoint(
+        args.champion,
+        observation_size=observation_size,
+        action_size=game.action_size,
+    )
+    candidate = load_linear_alpha_zero_evaluator_checkpoint(
+        args.candidate,
+        observation_size=observation_size,
+        action_size=game.action_size,
+    )
+    match_config = MatchConfig(
+        seed=args.seed,
+        games_per_side=args.games_per_side,
+        max_moves=args.max_moves,
+    )
+    champion_agent = AlphaZeroSearchAgent(
+        champion.evaluator,
+        simulations=args.simulations,
+        temperature=args.temperature,
+        label=args.champion_name,
+    )
+    candidate_agent = AlphaZeroSearchAgent(
+        candidate.evaluator,
+        simulations=args.simulations,
+        temperature=args.temperature,
+        label=args.candidate_name,
+    )
+    comparison = compare_alpha_zero_checkpoints(
+        champion=AlphaZeroCheckpoint(
+            name=args.champion_name,
+            uri=str(args.champion),
+            commit_hash=args.champion_commit,
+        ),
+        candidate=AlphaZeroCheckpoint(
+            name=args.candidate_name,
+            uri=str(args.candidate),
+            commit_hash=args.candidate_commit,
+        ),
+        champion_agent=champion_agent,
+        candidate_agent=candidate_agent,
+        games=(game,),
+        config=match_config,
+    )
+    report = build_alpha_zero_promotion_report(
+        comparison,
+        config=PromotionConfig(
+            match_config=match_config,
+            confidence_level=args.confidence_level,
+            promotion_elo_threshold=args.promotion_elo_threshold,
+        ),
+    )
+    payload = report.to_dict()
+    payload["checkpoint_metadata"] = {
+        args.champion_name: champion.metadata.to_dict(),
+        args.candidate_name: candidate.metadata.to_dict(),
     }
     serialized = json.dumps(payload, indent=2, sort_keys=True)
     if args.output is not None:
