@@ -236,6 +236,74 @@ def test_train_alpha_zero_resumes_from_checkpoint(
     assert checkpoint_path.exists()
 
 
+def test_evaluate_linear_checkpoint_prints_report(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    replay_path = tmp_path / "self-play.jsonl"
+    run_dir = tmp_path / "run"
+    report_path = tmp_path / "reports" / "linear-checkpoint.json"
+    checkpoint_path = run_dir / "checkpoints" / "tic_tac_toe-alpha-zero.pt"
+    main(
+        [
+            "self-play-demo",
+            "--simulations",
+            "4",
+            "--seed",
+            "3",
+            "--output",
+            str(replay_path),
+        ]
+    )
+    capsys.readouterr()
+    main(
+        [
+            "train-alpha-zero",
+            str(replay_path),
+            "--run-dir",
+            str(run_dir),
+            "--seed",
+            "3",
+            "--batch-size",
+            "1",
+            "--steps",
+            "1",
+        ]
+    )
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "evaluate-linear-checkpoint",
+            str(checkpoint_path),
+            "--game",
+            "tic_tac_toe",
+            "--seed",
+            "3",
+            "--games-per-side",
+            "1",
+            "--max-moves",
+            "9",
+            "--simulations",
+            "1",
+            "--output",
+            str(report_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["checkpoint"]["path"] == str(checkpoint_path)
+    assert payload["checkpoint"]["metadata"]["steps"] == 1
+    assert payload["checkpoint"]["metadata"]["samples"] == 1
+    assert payload["config"]["agents"][1]["name"] == "linear_checkpoint"
+    assert payload["config"]["agents"][1]["simulations"] == 1
+    assert payload["games"] == ["tic_tac_toe"]
+    assert len(payload["matches"]) == 2
+    assert json.loads(report_path.read_text(encoding="utf-8")) == payload
+
+
 def test_evaluate_prints_baseline_report(capsys: pytest.CaptureFixture[str]) -> None:
     exit_code = main(
         [
