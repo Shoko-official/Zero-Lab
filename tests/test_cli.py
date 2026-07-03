@@ -304,6 +304,82 @@ def test_evaluate_linear_checkpoint_prints_report(
     assert json.loads(report_path.read_text(encoding="utf-8")) == payload
 
 
+def test_promote_linear_checkpoint_prints_promotion_report(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    replay_path = tmp_path / "self-play.jsonl"
+    run_dir = tmp_path / "run"
+    report_path = tmp_path / "reports" / "promotion.json"
+    checkpoint_path = run_dir / "checkpoints" / "tic_tac_toe-alpha-zero.pt"
+    main(
+        [
+            "self-play-demo",
+            "--simulations",
+            "4",
+            "--seed",
+            "3",
+            "--output",
+            str(replay_path),
+        ]
+    )
+    capsys.readouterr()
+    main(
+        [
+            "train-alpha-zero",
+            str(replay_path),
+            "--run-dir",
+            str(run_dir),
+            "--seed",
+            "3",
+            "--batch-size",
+            "1",
+            "--steps",
+            "1",
+        ]
+    )
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "promote-linear-checkpoint",
+            "--champion",
+            str(checkpoint_path),
+            "--candidate",
+            str(checkpoint_path),
+            "--champion-commit",
+            "aaa1111",
+            "--candidate-commit",
+            "bbb2222",
+            "--game",
+            "tic_tac_toe",
+            "--seed",
+            "5",
+            "--games-per-side",
+            "1",
+            "--max-moves",
+            "9",
+            "--simulations",
+            "1",
+            "--output",
+            str(report_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["schema_version"] == 1
+    assert payload["champion"]["name"] == "champion"
+    assert payload["champion"]["commit_hash"] == "aaa1111"
+    assert payload["candidate"]["name"] == "candidate"
+    assert payload["candidate"]["commit_hash"] == "bbb2222"
+    assert payload["config"]["match"]["seed"] == 5
+    assert payload["config"]["match"]["games_per_side"] == 1
+    assert payload["promotion"]["decision"] in {"hold", "promote"}
+    assert json.loads(report_path.read_text(encoding="utf-8")) == payload
+
+
 def test_evaluate_prints_baseline_report(capsys: pytest.CaptureFixture[str]) -> None:
     exit_code = main(
         [
